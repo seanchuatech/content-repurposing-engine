@@ -13,16 +13,16 @@ subsequent phase has a stable foundation.
 
 ### Steps
 
-- [ ] Initialize monorepo root (`package.json` workspace, `.gitignore`,
+- [x] Initialize monorepo root (`package.json` workspace, `.gitignore`,
       `.env.example`)
-- [ ] Scaffold `client/` — React + Vite + TypeScript + Tailwind CSS
-- [ ] Scaffold `server/` — Bun + Elysia with basic health check route
-- [ ] Scaffold `workers/` — Python project with `pyproject.toml` (uv)
-- [ ] Set up Biome config (`biome.json`) for TS formatting/linting
-- [ ] Set up ruff config for Python formatting/linting
-- [ ] Create `docker-compose.yml` with Redis service
-- [ ] Create `storage/` directories (`uploads/`, `clips/`, `temp/`)
-- [ ] Verify all three services start independently
+- [x] Scaffold `client/` — React + Vite + TypeScript + Tailwind CSS
+- [x] Scaffold `server/` — Bun + Elysia with basic health check route
+- [x] Scaffold `workers/` — Python project with `pyproject.toml` (uv)
+- [x] Set up Biome config (`biome.json`) for TS formatting/linting
+- [x] Set up ruff config for Python formatting/linting
+- [x] Create `docker-compose.yml` with Redis service
+- [x] Create `storage/` directories (`uploads/`, `clips/`, `temp/`)
+- [x] Verify all three services start independently
 
 ### Deliverable
 
@@ -42,11 +42,15 @@ job dispatch.
 - [ ] Define schemas: `projects`, `videos`, `clips`, `jobs`
 - [ ] Implement CRUD routes for projects (`/api/projects`)
 - [ ] Implement video upload route (`/api/upload`)
-  - Multipart upload, file validation (MIME type, size, FFprobe check)
+  - Multipart upload, file validation (MIME type, size)
+  - Pre-upload validation: use \`fluent-ffmpeg\` (ffprobe) to verify real video
+    duration, codecs, and resolution before queuing
   - Stream to `storage/uploads/`
 - [ ] Set up BullMQ connection and job producer (`server/src/queue/`)
 - [ ] Dispatch processing job on successful upload
 - [ ] Implement job status route (`/api/jobs/:id`)
+- [ ] Define strict Job State Machine shared types:
+      `PENDING -> TRANSCRIBING -> ANALYZING -> CLIPPING -> CAPTIONING -> REFRAMING -> COMPLETED/FAILED`.
 - [ ] Implement SSE endpoint for real-time job progress (`/api/jobs/:id/events`)
 - [ ] Add global error handler and request logging middleware
 - [ ] Add CORS middleware
@@ -76,6 +80,8 @@ and runs the full pipeline.
 - [ ] Integrate OpenAI Whisper (local model)
 - [ ] _NOTE: Use `tiny` or `base` models for local CPU dev to avoid 10x
       slowdowns._
+- [ ] Implement Explicit Device Selection (`cpu`, `cuda`, `mps`) via ENV
+      variables.
 - [ ] Generate word-level timestamps from audio
 - [ ] Output transcript as structured JSON (segments with start/end times)
 
@@ -103,7 +109,8 @@ and runs the full pipeline.
 #### 3f. Reframe Stage (9:16)
 
 - [ ] Convert landscape clips to 9:16 portrait aspect ratio
-- [ ] Start with center-crop (face tracking deferred to later phase)
+- [ ] Implement "Smart Crop" instruction using FFmpeg motion/saliency tracking
+      (Option B) to center the action without heavy ML models.
 
 #### 3g. Pipeline Orchestration
 

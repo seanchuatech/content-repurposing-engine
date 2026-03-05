@@ -237,11 +237,15 @@ content-repurposing-engine/
 
 - **Framework**: Elysia with Typebox for request/response validation.
 - **File Uploads**: Use multipart form data. Validate file type (video MIME
-  types only) and size (configurable max, default 2GB) before accepting. Stream
-  uploads to disk — never buffer entire files in memory.
+  types only) and size (configurable max, default 2GB) before accepting.
+  - **Pre-upload validation:** Use `fluent-ffmpeg` (ffprobe) on the server to
+    verify real video duration, codecs, and resolution before queuing the job.
+  - Stream uploads to disk — never buffer entire files in memory.
 - **Job Dispatch**: After validating and storing an upload, immediately dispatch
   a processing job to BullMQ and return the job ID to the client. Processing is
   always async.
+- **Job State Machine**: Define strict Job State Machine shared types:
+  `PENDING -> TRANSCRIBING -> ANALYZING -> CLIPPING -> CAPTIONING -> REFRAMING -> COMPLETED/FAILED`.
 - **SSE for Progress**: Expose an SSE endpoint (`/jobs/:id/events`) that streams
   progress updates from BullMQ job events to the client.
 - **Health Checks**: Implement `/healthz` (liveness) and `/readyz` (readiness,
@@ -260,7 +264,11 @@ content-repurposing-engine/
      peaks, insights, humor).
   3. **Clip** — FFmpeg extracts segments at scored timestamps.
   4. **Caption** — Generate and burn in subtitles (SRT → hardcoded).
-  5. **Reframe** — Convert to 9:16 portrait with smart cropping.
+  5. **Reframe** — Convert to 9:16 portrait using "Smart Crop" (FFmpeg
+     motion/saliency tracking, avoiding heavy external ML models).
+- **Hardware Awareness**: Workers MUST support explicit device selection (`cpu`,
+  `cuda`, `mps`) via environment variables to prevent crashes on GPU-less
+  instances or failing to utilize available GPUs.
 - **Each stage**:
   - Must be independently testable with mock inputs.
   - Must report progress back to the queue (percentage + stage name).
