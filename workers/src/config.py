@@ -12,6 +12,7 @@ class Config:
     DEVICE = os.getenv("DEVICE", "cpu")
 
     STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     LLM_BACKEND = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai
 
 

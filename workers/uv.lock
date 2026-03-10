@@ -1007,6 +1007,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "redis" },
+    { name = "torch" },
     { name = "uvicorn" },
 ]
 
@@ -1018,5 +1019,6 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
     { name = "redis", specifier = ">=7.2.1" },
+    { name = "torch", specifier = ">=2.10.0" },
     { name = "uvicorn", specifier = ">=0.41.0" },
 ]

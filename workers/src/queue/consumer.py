@@ -27,7 +27,7 @@ async def process_video_job(job: Job, token: str):
 
         # Pipeline execution goes here...
         # 1. Transcribe
-        transcript = await transcribe_video(payload.filePath)
+        transcript = await transcribe_video(payload.jobId, payload.filePath)
         await job.updateProgress(30)
 
         # 2. Analyze

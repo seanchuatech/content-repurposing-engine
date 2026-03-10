@@ -13,12 +13,12 @@ async def main():
     job = await queue.add(
         "process",
         {
-            "jobId": "job-3",
+            "jobId": "job-7",
             "projectId": "proj-1",
             "videoId": "vid-1",
-            "filePath": "/some/path.mp4",
+            "filePath": "storage/uploads/talking_test.mp4",
         },
-        {"jobId": "job-3"}
+        {"jobId": "job-7"}
     )
     print(f"Enqueued job {job.id}")
 

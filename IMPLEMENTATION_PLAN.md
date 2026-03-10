@@ -101,13 +101,13 @@ and runs the full pipeline.
 
 #### 3b. Transcription Stage
 
-- [ ] Integrate OpenAI Whisper (local model)
-- [ ] _NOTE: Use `tiny` or `base` models for local CPU dev to avoid 10x
+- [x] Integrate OpenAI Whisper (local model)
+- [x] _NOTE: Use `tiny` or `base` models for local CPU dev to avoid 10x
       slowdowns._
-- [ ] Implement Explicit Device Selection (`cpu`, `cuda`, `mps`) via ENV
+- [x] Implement Explicit Device Selection (`cpu`, `cuda`, `mps`) via ENV
       variables.
-- [ ] Generate word-level timestamps from audio
-- [ ] Output transcript as structured JSON (segments with start/end times)
+- [x] Generate word-level timestamps from audio
+- [x] Output transcript as structured JSON (segments with start/end times)
 
 **Manual Verification**
 1.  Run the worker with a sample video.
