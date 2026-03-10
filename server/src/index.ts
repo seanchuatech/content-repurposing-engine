@@ -1,10 +1,27 @@
-import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { Elysia } from 'elysia';
+import { errorHandler } from './middleware/error-handler';
+import { logger } from './middleware/logger';
+import { jobsRoutes } from './routes/jobs';
+import { projectsRoutes } from './routes/projects';
+import { uploadRoutes } from './routes/upload';
 
 const app = new Elysia()
   .use(cors())
-  .get('/healthz', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
-  .get('/readyz', () => ({ status: 'ready' }))
-  .listen(process.env.PORT || 3000);
+  .use(logger)
+  .use(errorHandler)
 
-console.log(`🦊 Server is running at ${app.server?.hostname}:${app.server?.port}`);
+  // Health checks
+  .get('/healthz', () => ({ status: 'ok' }))
+  .get('/readyz', () => ({ status: 'ready' }))
+
+  // Mount API groups
+  .group('/api', (app) =>
+    app.use(projectsRoutes).use(uploadRoutes).use(jobsRoutes),
+  );
+
+app.listen(process.env.PORT || 3000);
+
+console.log(
+  `🦊 Content Engine API is running at ${app.server?.hostname}:${app.server?.port}`,
+);

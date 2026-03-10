@@ -1,0 +1,73 @@
+Adding a test job to BullMQ from Python...
+Traceback (most recent call last):
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 342, in connect_check_health
+    await self._connect()
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 811, in _connect
+    reader, writer = await asyncio.open_connection(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/streams.py", line 48, in open_connection
+    transport, _ = await loop.create_connection(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1122, in create_connection
+    raise exceptions[0]
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1104, in create_connection
+    sock = await self._connect_sock(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1007, in _connect_sock
+    await self.sock_connect(sock, address)
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 651, in sock_connect
+    return await fut
+           ^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/selector_events.py", line 691, in _sock_connect_cb
+    raise OSError(err, f'Connect call failed {address}')
+ConnectionRefusedError: [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/test-bullmq.py", line 19, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/test-bullmq.py", line 10, in main
+    job = await queue.add("process", {
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/bullmq/queue.py", line 45, in add
+    job_id = await self.scripts.addJob(job)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/bullmq/scripts.py", line 113, in addJob
+    result = await self.addStandardJob(job, job.timestamp, pipe)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/commands/core.py", line 6269, in __call__
+    return await client.evalsha(self.sha, len(keys), *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/client.py", line 735, in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/utils.py", line 227, in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 1259, in get_connection
+    await self.ensure_connection(connection)
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 1291, in ensure_connection
+    await connection.connect()
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 324, in connect
+    await self.retry.call_with_retry(
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/retry.py", line 55, in call_with_retry
+    raise error
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/retry.py", line 50, in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+  File "/home/leonard/repositories/personal-projects/content-repurposing-engine/workers/.venv/lib/python3.12/site-packages/redis/asyncio/connection.py", line 348, in connect_check_health
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to localhost:6379. Connect call failed ('127.0.0.1', 6379).
+2026-03-10 21:06:28,253 - worker - INFO - Initializing Content Repurposing Engine Worker...
+2026-03-10 21:06:28,255 - worker - INFO - Connecting to 'video-processing' queue...
+2026-03-10 21:06:28,259 - worker - INFO - Worker listening on generic queue video-processing
