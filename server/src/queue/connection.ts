@@ -4,6 +4,9 @@ import IORedis from 'ioredis';
 // Reuse the Redis connection for all queues to prevent connection limits
 export const connection = new IORedis(
   process.env.REDIS_URL || 'redis://localhost:6379',
+  {
+    maxRetriesPerRequest: null,
+  },
 );
 
 // Define our main processing queue
