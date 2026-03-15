@@ -116,34 +116,34 @@ and runs the full pipeline.
 
 #### 3c. Viral Moment Analysis Stage
 
-- [ ] Build LLM service abstraction (Ollama local / OpenAI API)
-- [ ] _NOTE: If local Ollama is too slow on CPU, fall back to OpenAI API for dev
+- [x] Build LLM service abstraction (Ollama local / OpenAI API)
+- [x] _NOTE: If local Ollama is too slow on CPU, fall back to OpenAI API for dev
       testing._
-- [ ] Design prompt for scoring transcript segments on virality criteria:
+- [x] Design prompt for scoring transcript segments on virality criteria:
   - Hook strength, emotional intensity, insight value, humor, controversy
-- [ ] Score and rank segments, select top N candidates for clipping
-- [ ] Output scored segments as structured JSON
+- [x] Score and rank segments, select top N candidates for clipping
+- [x] Output scored segments as structured JSON
 
 **Manual Verification**
 1.  Provide the worker with a pre-generated `transcript.json`.
 2.  Check logs for "Analysis complete".
-3.  Verify `storage/temp/<job_id>/analysis.json` contains segments with `virality_score` and `reasoning`.
+3.  Verify `storage/temp/<job_id>/analysis.json` contains segments with `virality_score` and `explanation`.
 
 #### 3d. Clip Extraction Stage
 
-- [ ] Build FFmpeg service wrapper
-- [ ] Extract clips at scored timestamps with configurable padding
-- [ ] Output clips to `storage/clips/`
+- [x] Build FFmpeg service wrapper
+- [x] Extract clips at scored timestamps with configurable padding
+- [x] Output clips to `storage/clips/`
 
 **Manual Verification**
 1.  Run the clipping stage with a sample video and `analysis.json`.
-2.  Verify new `.mp4` files appear in `storage/clips/<project_id>/`.
+2.  Verify new `.mp4` files appear in `storage/clips/`.
 3.  Play the clips to ensure they start/end at the correct times.
 
 #### 3e. Caption Stage
 
-- [ ] Generate SRT subtitles from transcript segments
-- [ ] Burn captions into clip video using FFmpeg
+- [x] Generate SRT subtitles from transcript segments
+- [x] Burn captions into clip video using FFmpeg
 
 **Manual Verification**
 1.  Run the captioning stage on an extracted clip.
@@ -152,8 +152,8 @@ and runs the full pipeline.
 
 #### 3f. Reframe Stage (9:16)
 
-- [ ] Convert landscape clips to 9:16 portrait aspect ratio
-- [ ] Implement "Smart Crop" instruction using FFmpeg motion/saliency tracking
+- [x] Convert landscape clips to 9:16 portrait aspect ratio
+- [x] Implement "Smart Crop" instruction using FFmpeg motion/saliency tracking
       (Option B) to center the action without heavy ML models.
 
 **Manual Verification**
@@ -163,9 +163,9 @@ and runs the full pipeline.
 
 #### 3g. Pipeline Orchestration
 
-- [/] Wire all stages into a sequential pipeline (Scaffolded)
-- [ ] Each stage writes output to disk and updates job metadata
-- [ ] Handle stage failures: log, mark failed, allow per-stage retry
+- [x] Wire all stages into a sequential pipeline (Scaffolded)
+- [x] Each stage writes output to disk and updates job metadata
+- [x] Handle stage failures: log, mark failed, allow per-stage retry
 
 **Manual Verification**
 1.  Dispatch a single upload job.

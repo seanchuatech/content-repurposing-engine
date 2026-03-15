@@ -14,7 +14,12 @@ async def main():
 
         logger.info("Connecting to 'video-processing' queue...")
         worker = Worker(
-            "video-processing", process_video_job, {"connection": redis_conn}
+            "video-processing", 
+            process_video_job, 
+            {
+                "connection": redis_conn,
+                "lockDuration": 300000, # 5 minutes
+            }
         )
         logger.info(f"Worker listening on generic queue {worker.name}")
 

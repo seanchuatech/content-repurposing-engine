@@ -1,5 +1,15 @@
+from enum import Enum
 from pydantic import BaseModel
 
+class JobState(str, Enum):
+    PENDING = "PENDING"
+    TRANSCRIBING = "TRANSCRIBING"
+    ANALYZING = "ANALYZING"
+    CLIPPING = "CLIPPING"
+    CAPTIONING = "CAPTIONING"
+    REFRAMING = "REFRAMING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class JobPayload(BaseModel):
     jobId: str

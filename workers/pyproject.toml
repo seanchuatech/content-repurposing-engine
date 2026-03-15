@@ -7,6 +7,8 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.135.1",
     "ffmpeg-python>=0.2.0",
+    "httpx>=0.28.1",
+    "openai>=2.28.0",
     "openai-whisper>=20250625",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",

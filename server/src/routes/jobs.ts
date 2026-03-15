@@ -34,13 +34,51 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     },
   )
 
+  // PATCH job status and progress (used by workers)
+  .patch(
+    '/:id',
+    async ({ params: { id }, body, set }) => {
+      try {
+        const updatedJob = await db
+          .update(jobs)
+          .set({
+            status: body.status,
+            progressPercent: body.progressPercent,
+            failedReason: body.failedReason,
+            updatedAt: new Date(),
+          })
+          .where(eq(jobs.id, id))
+          .returning()
+          .get();
+
+        if (!updatedJob) {
+          set.status = 404;
+          return { error: 'Job not found' };
+        }
+
+        return updatedJob;
+      } catch (e) {
+        console.error('Failed to update job:', e);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        status: t.Optional(t.String()),
+        progressPercent: t.Optional(t.Number()),
+        failedReason: t.Optional(t.String()),
+      }),
+    },
+  )
+
   // SSE Endpoint for real-time progress
   // biome-ignore lint/suspicious/noExplicitAny: Stream signature has tricky types
   .get(
     '/:id/events',
     ({ params: { id } }) =>
       new Stream(async (stream: any) => {
-        // 1. Send initial connection success event
         stream.event = 'connected';
         stream.send({ message: 'Connected to Job Stream', jobId: id });
 

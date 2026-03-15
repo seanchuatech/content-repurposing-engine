@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
-import { projects } from '../db/schema';
+import { clips, projects } from '../db/schema';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get all projects
@@ -37,7 +38,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   .post(
     '/',
     async ({ body }) => {
-      const id = crypto.randomUUID();
+      const id = uuidv4();
       const newProject = await db
         .insert(projects)
         .values({
@@ -71,5 +72,51 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     },
     {
       params: t.Object({ id: t.String() }),
+    },
+  )
+
+  // Create a new clip for a project (used by workers)
+  .post(
+    '/:id/clips',
+    async ({ params: { id }, body, set }) => {
+      try {
+        const clipId = uuidv4();
+        const newClip = await db
+          .insert(clips)
+          .values({
+            id: body.id || clipId,
+            projectId: id,
+            videoId: body.videoId,
+            jobId: body.jobId,
+            startTime: body.startTime,
+            endTime: body.endTime,
+            title: body.title,
+            viralityScore: body.viralityScore,
+            explanation: body.explanation,
+            filePath: body.storagePath,
+          })
+          .returning()
+          .get();
+
+        return newClip;
+      } catch (e) {
+        console.error('Failed to create clip:', e);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        id: t.Optional(t.String()),
+        videoId: t.String(),
+        jobId: t.String(),
+        startTime: t.Number(),
+        endTime: t.Number(),
+        title: t.String(),
+        viralityScore: t.Number(),
+        explanation: t.Optional(t.String()),
+        storagePath: t.String(),
+      }),
     },
   );

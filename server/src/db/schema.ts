@@ -70,6 +70,9 @@ export const clips = sqliteTable('clips', {
   projectId: text('project_id')
     .notNull()
     .references(() => projects.id, { onDelete: 'cascade' }),
+  videoId: text('video_id')
+    .notNull()
+    .references(() => videos.id, { onDelete: 'cascade' }),
   jobId: text('job_id')
     .notNull()
     .references(() => jobs.id, { onDelete: 'cascade' }),
@@ -78,6 +81,7 @@ export const clips = sqliteTable('clips', {
   endTime: integer('end_time').notNull(), // in seconds
   viralityScore: integer('virality_score'), // 1-100 assigned by LLM
   title: text('title'), // Optional auto-generated description
+  explanation: text('explanation'),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),
