@@ -1,10 +1,12 @@
 import httpx
 import os
+import json
 from bullmq import Job
 
 from src.config import config
 from src.logger import logger
 from src.models.job import JobPayload, JobState
+from src.models.clip import Clip
 from src.pipeline.analyze import analyze_transcript
 from src.pipeline.caption import generate_captions
 from src.pipeline.clip import extract_clip
@@ -53,6 +55,30 @@ async def update_remote_video_metadata(video_id: str, file_path: str, duration: 
         logger.error(f"Failed to update remote video metadata: {e}")
 
 
+async def fetch_clip_from_server(clip_id: str) -> Clip:
+    """
+    Fetches a specific clip's metadata from the server.
+    Note: We need to implement this endpoint or find a way to get it.
+    For now we'll assume we can get it via a project lookup or similar.
+    Actually let's just add it to the server routes.
+    """
+    # Assuming GET /projects/clips/:clipId exists (we'll add it)
+    url = f"{config.SERVER_URL}/projects/clips/{clip_id}"
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return Clip(
+            id=data["id"],
+            job_id=data["jobId"],
+            start_time=float(data["startTime"]),
+            end_time=float(data["endTime"]),
+            title=data["title"],
+            virality_score=data["viralityScore"] or 0,
+            explanation=data["explanation"] or ""
+        )
+
+
 async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_data):
     """
     Saves a generated clip to the server database.
@@ -86,75 +112,86 @@ async def process_video_job(job: Job, token: str):
         logger.debug(f"Payload loaded: {payload}")
 
         current_file_path = payload.filePath
+        only_clip_id = job.data.get("onlyClipId")
 
-        # Check if we need to download from YouTube
+        # 0. Handle YouTube Download
         if current_file_path.startswith('http'):
             logger.info(f"YouTube URL detected: {current_file_path}. Downloading...")
-            await job.updateProgress(2)
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 2)
-            
             downloaded_path = await download_youtube_video(current_file_path, payload.jobId)
             current_file_path = downloaded_path
-            
-            # Update server about the new local path
             await update_remote_video_metadata(payload.videoId, current_file_path)
 
-        # Initial Progress for Transcription
-        await job.updateProgress(5)
-        await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
+        # CASE A: REGENERATE SINGLE CLIP
+        if only_clip_id:
+            logger.info(f"Regenerating single clip: {only_clip_id}")
+            clip = await fetch_clip_from_server(only_clip_id)
+            
+            # Load transcript from temp storage (required for captions)
+            # We assume it exists from the first run
+            transcript_path = os.path.join(config.PROJECT_ROOT, "storage", "temp", clip.job_id, "transcript.json")
+            if not os.path.exists(transcript_path):
+                # Fallback: re-transcribe if missing
+                logger.warning("Transcript missing for regeneration, re-transcribing...")
+                transcript = await transcribe_video(payload.jobId, current_file_path)
+            else:
+                with open(transcript_path, "r") as f:
+                    transcript = json.load(f)
 
+            await update_remote_job_status(payload.jobId, JobState.CLIPPING, 10)
+            raw_clip_path = await extract_clip(current_file_path, clip)
+            
+            await update_remote_job_status(payload.jobId, JobState.CAPTIONING, 40)
+            captioned_path = await generate_captions(raw_clip_path, clip, transcript)
+            
+            await update_remote_job_status(payload.jobId, JobState.REFRAMING, 70)
+            final_path = await reframe_clip(captioned_path, clip)
+            
+            clip.storage_path = final_path
+            await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
+            
+            await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
+            return "REGENERATION_SUCCESS"
+
+        # CASE B: FULL PIPELINE
         # 1. Transcribe
         logger.info(f"Stage 1: Transcribing {current_file_path}...")
+        await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
         transcript = await transcribe_video(payload.jobId, current_file_path)
         
-        # Update duration from transcript
         duration = transcript.get('segments', [])[-1].get('end', 0) if transcript.get('segments') else 0
         await update_remote_video_metadata(payload.videoId, current_file_path, duration)
 
-        await job.updateProgress(30)
-        await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
-
         # 2. Analyze
         logger.info("Stage 2: Analyzing...")
+        await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
         clips = await analyze_transcript(payload.jobId, transcript)
         if not clips:
-            logger.warning("No clips identified during analysis.")
             await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
             return "SUCCESS_NO_CLIPS"
-
-        await job.updateProgress(50)
-        await update_remote_job_status(payload.jobId, JobState.CLIPPING, 50)
 
         # 3, 4, 5. Clip, Caption, Reframe
         total_clips = len(clips)
         for i, clip in enumerate(clips):
             logger.info(f"Processing clip {i+1}/{total_clips}: {clip.id}")
-            
-            # Clipping
             await update_remote_job_status(payload.jobId, JobState.CLIPPING, 50 + int((i / total_clips) * 15))
             raw_clip_path = await extract_clip(current_file_path, clip)
             
-            # Captioning
             await update_remote_job_status(payload.jobId, JobState.CAPTIONING, 50 + int((i / total_clips) * 15) + 5)
             captioned_path = await generate_captions(raw_clip_path, clip, transcript)
             
-            # Reframing
             await update_remote_job_status(payload.jobId, JobState.REFRAMING, 50 + int((i / total_clips) * 15) + 10)
             final_path = await reframe_clip(captioned_path, clip)
             
-            # Update clip storage path and save to server
             clip.storage_path = final_path
             await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
 
-        # Final Completion
-        await job.updateProgress(100)
         await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
         logger.info(f"Completed job {job.id}")
         return "SUCCESS"
 
     except Exception as e:
         logger.exception(f"Failed to process job {job.id}")
-        # Try to mark job as failed on server
         try:
             job_id = job.data.get('jobId')
             if job_id:

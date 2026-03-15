@@ -9,13 +9,16 @@ import {
   AlertCircle, 
   CheckCircle2,
   FileVideo,
-  ChevronRight
+  ChevronRight,
+  Edit2,
+  Save,
+  RotateCcw
 } from 'lucide-react';
-import { getProject, getJobByProject, getJob } from '../lib/api';
+import { getProject, getJobByProject, getJob, updateClip, regenerateClip } from '../lib/api';
 import { useJobStatus } from '../hooks/useJobStatus';
 import type { Project, Clip, Job } from '../types/video';
 
-const STORAGE_BASE_URL = 'http://localhost:3000'; // Removed /storage suffix because filePath already starts with storage/
+const STORAGE_BASE_URL = 'http://localhost:3000';
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,9 +29,14 @@ export default function ProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   
+  // Editor State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editStart, setEditStart] = useState(0);
+  const [editEnd, setEditEnd] = useState(0);
+  const [editTitle, setEditTitle] = useState('');
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Use SSE for live updates - pass the actual JOB ID
   const { job: liveJob } = useJobStatus(currentJob?.id);
 
   useEffect(() => {
@@ -38,7 +46,6 @@ export default function ProjectPage() {
         const projectData = await getProject(id);
         setProject(projectData);
         
-        // Fetch job by project ID to get the JOB ID and clips
         const jobData = await getJobByProject(id);
         setCurrentJob(jobData);
         if (jobData.clips) {
@@ -54,21 +61,56 @@ export default function ProjectPage() {
     fetchData();
   }, [id]);
 
-  // Update local state when live job data comes in
   useEffect(() => {
     if (liveJob?.status === 'COMPLETED' && currentJob?.id) {
-      // Refresh clips
       getJob(currentJob.id).then(data => {
-        if (data.clips) setClips(data.clips);
+        if (data.clips) {
+          setClips(data.clips);
+          // If the currently active clip was regenerated, update its path
+          if (activeClip) {
+            const updated = data.clips.find((c: Clip) => c.id === activeClip.id);
+            if (updated) setActiveClip(updated);
+          }
+        }
       });
     }
   }, [liveJob?.status, currentJob?.id]);
 
   const handlePlayClip = (clip: Clip) => {
     setActiveClip(clip);
+    setIsEditing(false);
     if (videoRef.current) {
       videoRef.current.src = `${STORAGE_BASE_URL}/${clip.filePath}`;
       videoRef.current.play();
+    }
+  };
+
+  const startEditing = () => {
+    if (!activeClip) return;
+    setEditStart(activeClip.startTime);
+    setEditEnd(activeClip.endTime);
+    setEditTitle(activeClip.title);
+    setIsEditing(true);
+  };
+
+  const handleRegenerate = async () => {
+    if (!activeClip) return;
+    try {
+      // 1. Update the clip timestamps in DB
+      await updateClip(activeClip.id, {
+        startTime: editStart,
+        endTime: editEnd,
+        title: editTitle
+      });
+      
+      // 2. Trigger worker regeneration
+      const { jobId } = await regenerateClip(activeClip.id);
+      
+      // 3. Switch to tracking the new job
+      setCurrentJob({ id: jobId } as Job);
+      setIsEditing(false);
+    } catch (err) {
+      alert('Failed to start regeneration');
     }
   };
 
@@ -120,26 +162,12 @@ export default function ProjectPage() {
             />
           </div>
           <p className="mt-4 text-sm text-zinc-500 italic text-center">
-            AI is currently processing your video. Clips will appear below as they are ready.
+            Processing in progress. Your changes will be ready shortly.
           </p>
         </div>
       )}
 
-      {currentStatus === 'FAILED' && (
-        <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start gap-4">
-          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
-          <div>
-            <h3 className="text-red-400 font-bold mb-1">Processing Failed</h3>
-            <p className="text-zinc-500 text-sm">{liveJob?.failedReason || currentJob?.failedReason || 'An unknown error occurred during video processing.'}</p>
-            <button className="mt-4 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4">
-              Try again
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Player */}
         <div className="lg:col-span-2 space-y-6">
           <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl relative group">
             {activeClip ? (
@@ -157,21 +185,22 @@ export default function ProjectPage() {
             )}
           </div>
           
-          {activeClip && (
+          {activeClip && !isEditing && (
             <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">{activeClip.title}</h2>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold border border-indigo-500/20">
-                    <Sparkles className="w-3 h-3" />
-                    {activeClip.viralityScore}% Viral Score
-                  </div>
-                </div>
+                <button 
+                  onClick={startEditing}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-bold border border-zinc-700 transition-colors"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  Edit Clip
+                </button>
               </div>
-              <p className="text-zinc-400 text-sm leading-relaxed">
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6">
                 {activeClip.explanation}
               </p>
-              <div className="mt-6 flex gap-3">
+              <div className="flex gap-3">
                 <a 
                   href={`${STORAGE_BASE_URL}/${activeClip.filePath}`}
                   download
@@ -180,6 +209,68 @@ export default function ProjectPage() {
                   <Download className="w-4 h-4" />
                   Download Clip
                 </a>
+              </div>
+            </div>
+          )}
+
+          {activeClip && isEditing && (
+            <div className="p-6 bg-indigo-600/5 border border-indigo-500/30 rounded-xl space-y-6 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit2 className="w-5 h-5 text-indigo-400" />
+                  Edit Clip
+                </h2>
+                <button 
+                  onClick={() => setIsEditing(false)}
+                  className="text-zinc-500 hover:text-white text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Title</label>
+                  <input 
+                    type="text" 
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Start Time (s)</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={editStart}
+                      onChange={(e) => setEditStart(parseFloat(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">End Time (s)</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      value={editEnd}
+                      onChange={(e) => setEditEnd(parseFloat(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  onClick={handleRegenerate}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20 transition-all"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Save & Regenerate
+                </button>
               </div>
             </div>
           )}
@@ -200,9 +291,7 @@ export default function ProjectPage() {
             <div className="py-12 text-center bg-zinc-900/20 border border-zinc-800 border-dashed rounded-xl px-6">
               <Sparkles className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
               <p className="text-zinc-500 text-sm">
-                {currentStatus === 'COMPLETED' 
-                  ? 'No viral clips found in this video.' 
-                  : 'Clips will appear here as they are processed.'}
+                Clips will appear here as they are processed.
               </p>
             </div>
           ) : (
@@ -227,9 +316,6 @@ export default function ProjectPage() {
                       <h4 className={`font-bold text-sm mb-1 truncate ${activeClip?.id === clip.id ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
                         {clip.title}
                       </h4>
-                      <p className="text-xs text-zinc-500 mb-3 line-clamp-2 leading-relaxed italic">
-                        "{clip.explanation}"
-                      </p>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">
                           {Math.floor((clip.endTime - clip.startTime))}s duration

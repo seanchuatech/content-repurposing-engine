@@ -40,3 +40,21 @@ export async function getJobByProject(projectId: string) {
   if (!response.ok) throw new Error('Failed to fetch job for project');
   return response.json();
 }
+
+export async function updateClip(clipId: string, data: { startTime?: number; endTime?: number; title?: string }) {
+  const response = await fetch(`${API_BASE_URL}/projects/clips/${clipId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Failed to update clip');
+  return response.json();
+}
+
+export async function regenerateClip(clipId: string) {
+  const response = await fetch(`${API_BASE_URL}/projects/clips/${clipId}/regenerate`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to start regeneration');
+  return response.json();
+}

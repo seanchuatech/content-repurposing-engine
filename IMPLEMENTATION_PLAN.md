@@ -287,7 +287,7 @@ documentation.
 
 ### Steps
 
-- [ ] Add clip editing: allow user to adjust start/end times before export
+- [x] Add clip editing: allow user to adjust start/end times before export
 - [x] Add clip metadata: auto-generate titles, descriptions, and hashtags
 - [x] YouTube URL import (download via `yt-dlp`)
 - [ ] Settings page: configure Whisper model, LLM provider, export quality
