@@ -219,6 +219,7 @@ monitoring job progress.
 2.  Verify previously uploaded videos appear as project cards.
 3.  Click a card and ensure it navigates to the Project Page.
 
+
 #### 4d. Project Page
 
 - [x] Display original video with HTML5 player
@@ -288,7 +289,7 @@ documentation.
 
 - [ ] Add clip editing: allow user to adjust start/end times before export
 - [ ] Add clip metadata: auto-generate titles, descriptions, and hashtags
-- [ ] YouTube URL import (download via `yt-dlp`)
+- [x] YouTube URL import (download via `yt-dlp`)
 - [ ] Settings page: configure Whisper model, LLM provider, export quality
 - [ ] Dockerize the full stack (client + server + worker + Redis)
 - [ ] Write comprehensive `README.md` with setup instructions

@@ -15,7 +15,7 @@ import { getProject, getJobByProject, getJob } from '../lib/api';
 import { useJobStatus } from '../hooks/useJobStatus';
 import type { Project, Clip, Job } from '../types/video';
 
-const STORAGE_BASE_URL = 'http://localhost:3000/storage';
+const STORAGE_BASE_URL = 'http://localhost:3000'; // Removed /storage suffix because filePath already starts with storage/
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -147,7 +147,7 @@ export default function ProjectPage() {
                 ref={videoRef}
                 controls 
                 className="w-full h-full object-contain"
-                poster={`${STORAGE_BASE_URL}/temp/${activeClip.jobId}/thumbnail.jpg`}
+                poster={`${STORAGE_BASE_URL}/storage/temp/${activeClip.jobId}/thumbnail.jpg`}
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600 gap-4">

@@ -1,4 +1,5 @@
 import httpx
+import os
 from bullmq import Job
 
 from src.config import config
@@ -9,6 +10,7 @@ from src.pipeline.caption import generate_captions
 from src.pipeline.clip import extract_clip
 from src.pipeline.reframe import reframe_clip
 from src.pipeline.transcribe import transcribe_video
+from src.services.youtube_service import download_youtube_video
 
 
 async def update_remote_job_status(job_id: str, status: JobState, progress: int, failed_reason: str = None):
@@ -29,6 +31,26 @@ async def update_remote_job_status(job_id: str, status: JobState, progress: int,
             response.raise_for_status()
     except Exception as e:
         logger.error(f"Failed to update remote job status: {e}")
+
+
+async def update_remote_video_metadata(video_id: str, file_path: str, duration: float = None):
+    """
+    Updates the video metadata on the server (path and duration).
+    """
+    url = f"{config.SERVER_URL}/projects/videos/{video_id}"
+    payload = {
+        "filePath": file_path,
+    }
+    if duration:
+        payload["durationSeconds"] = int(duration)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=payload)
+            response.raise_for_status()
+            logger.info(f"Successfully updated video metadata for {video_id}")
+    except Exception as e:
+        logger.error(f"Failed to update remote video metadata: {e}")
 
 
 async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_data):
@@ -63,13 +85,32 @@ async def process_video_job(job: Job, token: str):
         payload = JobPayload(**job.data)
         logger.debug(f"Payload loaded: {payload}")
 
-        # Initial Progress
+        current_file_path = payload.filePath
+
+        # Check if we need to download from YouTube
+        if current_file_path.startswith('http'):
+            logger.info(f"YouTube URL detected: {current_file_path}. Downloading...")
+            await job.updateProgress(2)
+            await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 2)
+            
+            downloaded_path = await download_youtube_video(current_file_path, payload.jobId)
+            current_file_path = downloaded_path
+            
+            # Update server about the new local path
+            await update_remote_video_metadata(payload.videoId, current_file_path)
+
+        # Initial Progress for Transcription
         await job.updateProgress(5)
         await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
 
         # 1. Transcribe
-        logger.info("Stage 1: Transcribing...")
-        transcript = await transcribe_video(payload.jobId, payload.filePath)
+        logger.info(f"Stage 1: Transcribing {current_file_path}...")
+        transcript = await transcribe_video(payload.jobId, current_file_path)
+        
+        # Update duration from transcript
+        duration = transcript.get('segments', [])[-1].get('end', 0) if transcript.get('segments') else 0
+        await update_remote_video_metadata(payload.videoId, current_file_path, duration)
+
         await job.updateProgress(30)
         await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
 
@@ -91,7 +132,7 @@ async def process_video_job(job: Job, token: str):
             
             # Clipping
             await update_remote_job_status(payload.jobId, JobState.CLIPPING, 50 + int((i / total_clips) * 15))
-            raw_clip_path = await extract_clip(payload.filePath, clip)
+            raw_clip_path = await extract_clip(current_file_path, clip)
             
             # Captioning
             await update_remote_job_status(payload.jobId, JobState.CAPTIONING, 50 + int((i / total_clips) * 15) + 5)

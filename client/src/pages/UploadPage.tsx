@@ -1,19 +1,21 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, FileVideo, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, X, FileVideo, AlertCircle, CheckCircle2, Youtube, Link as LinkIcon } from 'lucide-react';
 import { uploadVideo } from '../lib/api';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [ytUrl, setYtUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [uploadType, setUploadType] = useState<'file' | 'youtube'>('file');
   const navigate = useNavigate();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
-  }, []);
+    if (uploadType === 'file') setIsDragging(true);
+  }, [uploadType]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -59,24 +61,40 @@ export default function UploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (uploadType === 'file' && !file) return;
+    if (uploadType === 'youtube' && !ytUrl) return;
 
     setStatus('uploading');
     try {
-      const result = await uploadVideo(file);
+      let result;
+      if (uploadType === 'file' && file) {
+        result = await uploadVideo(file);
+      } else {
+        const response = await fetch('http://localhost:3000/api/upload/youtube', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: ytUrl }),
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'YouTube import failed');
+        }
+        result = await response.json();
+      }
+
       setStatus('success');
-      // Redirect to project page after a short delay
       setTimeout(() => {
         navigate(`/projects/${result.projectId}`);
       }, 1500);
     } catch (error) {
       setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'Upload failed');
+      setErrorMessage(error instanceof Error ? error.message : 'Action failed');
     }
   };
 
   const reset = () => {
     setFile(null);
+    setYtUrl('');
     setStatus('idle');
     setErrorMessage('');
   };
@@ -84,10 +102,35 @@ export default function UploadPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Upload Video</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Add Content</h1>
         <p className="text-zinc-400">
-          Upload your long-form video to start detecting viral moments.
+          Upload a file or paste a YouTube link to start detecting viral moments.
         </p>
+      </div>
+
+      <div className="flex gap-4 mb-8">
+        <button
+          onClick={() => { setUploadType('file'); reset(); }}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            uploadType === 'file' 
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
+              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+          }`}
+        >
+          <Upload className="w-5 h-5" />
+          File Upload
+        </button>
+        <button
+          onClick={() => { setUploadType('youtube'); reset(); }}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            uploadType === 'youtube' 
+              ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' 
+              : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+          }`}
+        >
+          <Youtube className="w-5 h-5" />
+          YouTube URL
+        </button>
       </div>
 
       <div
@@ -97,12 +140,38 @@ export default function UploadPage() {
         className={`relative border-2 border-dashed rounded-xl p-12 transition-all flex flex-col items-center justify-center min-h-[400px] ${
           isDragging 
             ? 'border-indigo-500 bg-indigo-500/5' 
-            : file 
+            : (file || ytUrl)
               ? 'border-zinc-700 bg-zinc-900/50' 
               : 'border-zinc-800 bg-zinc-900/20 hover:border-zinc-700'
         }`}
       >
-        {!file ? (
+        {status === 'idle' && uploadType === 'youtube' && (
+          <div className="w-full max-w-md space-y-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mx-auto">
+              <LinkIcon className="w-8 h-8 text-zinc-400" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-zinc-200">Paste YouTube Link</p>
+              <p className="text-sm text-zinc-500 text-center">We'll download and process it automatically</p>
+            </div>
+            <input
+              type="text"
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+              value={ytUrl}
+              onChange={(e) => setYtUrl(e.target.value)}
+            />
+            <button
+              disabled={!ytUrl.includes('youtube.com') && !ytUrl.includes('youtu.be')}
+              onClick={handleUpload}
+              className="w-full py-3 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg shadow-red-500/20"
+            >
+              Import Video
+            </button>
+          </div>
+        )}
+
+        {status === 'idle' && uploadType === 'file' && !file && (
           <>
             <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-6">
               <Upload className="w-8 h-8 text-zinc-400" />
@@ -125,16 +194,18 @@ export default function UploadPage() {
               </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {(file || (ytUrl && status !== 'idle')) && (
           <div className="w-full max-w-md">
             <div className="flex items-center gap-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700 mb-8 relative">
               <div className="w-12 h-12 rounded bg-zinc-700 flex items-center justify-center flex-shrink-0">
-                <FileVideo className="w-6 h-6 text-indigo-400" />
+                {uploadType === 'file' ? <FileVideo className="w-6 h-6 text-indigo-400" /> : <Youtube className="w-6 h-6 text-red-400" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate">{file.name}</p>
+                <p className="font-medium text-white truncate">{uploadType === 'file' ? file?.name : ytUrl}</p>
                 <p className="text-sm text-zinc-500">
-                  {(file.size / (1024 * 1024)).toFixed(2)} MB
+                  {uploadType === 'file' ? `${(file!.size / (1024 * 1024)).toFixed(2)} MB` : 'YouTube Video'}
                 </p>
               </div>
               {status === 'idle' && (
@@ -147,7 +218,7 @@ export default function UploadPage() {
               )}
             </div>
 
-            {status === 'idle' && (
+            {status === 'idle' && uploadType === 'file' && (
               <button
                 onClick={handleUpload}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-lg transition-all shadow-lg shadow-indigo-500/20"
@@ -162,7 +233,7 @@ export default function UploadPage() {
                   <div className="h-full bg-indigo-500 animate-[progress_2s_ease-in-out_infinite] w-full origin-left" />
                 </div>
                 <p className="text-center text-indigo-400 font-medium animate-pulse">
-                  Uploading and analyzing...
+                  {uploadType === 'file' ? 'Uploading and analyzing...' : 'Initiating download and analysis...'}
                 </p>
               </div>
             )}
@@ -170,7 +241,7 @@ export default function UploadPage() {
             {status === 'success' && (
               <div className="flex flex-col items-center gap-3 text-green-400 py-4">
                 <CheckCircle2 className="w-12 h-12" />
-                <p className="font-bold text-xl text-center">Upload Successful!</p>
+                <p className="font-bold text-xl text-center">Success!</p>
                 <p className="text-zinc-400 text-center text-sm">Redirecting to project page...</p>
               </div>
             )}

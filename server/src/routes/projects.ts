@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
-import { clips, projects } from '../db/schema';
+import { clips, projects, videos } from '../db/schema';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get all projects
@@ -119,4 +119,39 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         storagePath: t.String(),
       }),
     },
+  )
+  // Update a video entry (used by workers after download)
+  .patch(
+    '/videos/:id',
+    async ({ params: { id }, body, set }) => {
+      try {
+        const updatedVideo = await db
+          .update(videos)
+          .set({
+            filePath: body.filePath,
+            durationSeconds: body.durationSeconds,
+          })
+          .where(eq(videos.id, id))
+          .returning()
+          .get();
+
+        if (!updatedVideo) {
+          set.status = 404;
+          return { error: 'Video not found' };
+        }
+
+        return updatedVideo;
+      } catch (e) {
+        console.error('Failed to update video:', e);
+        set.status = 500;
+        return { error: 'Internal server error' };
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        filePath: t.Optional(t.String()),
+        durationSeconds: t.Optional(t.Number()),
+      }),
+    }
   );
