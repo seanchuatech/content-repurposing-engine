@@ -11,9 +11,9 @@ import {
   FileVideo,
   ChevronRight
 } from 'lucide-react';
-import { getProject, getJob } from '../lib/api';
+import { getProject, getJobByProject, getJob } from '../lib/api';
 import { useJobStatus } from '../hooks/useJobStatus';
-import { Project, Clip, Job } from '../types/video';
+import type { Project, Clip, Job } from '../types/video';
 
 const STORAGE_BASE_URL = 'http://localhost:3000/storage';
 
@@ -24,11 +24,12 @@ export default function ProjectPage() {
   const [activeClip, setActiveClip] = useState<Clip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentJob, setCurrentJob] = useState<Job | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Use SSE for live updates
-  const { job: liveJob } = useJobStatus(project?.id); // In our current schema, project ID might match job context or we fetch it
+  // Use SSE for live updates - pass the actual JOB ID
+  const { job: liveJob } = useJobStatus(currentJob?.id);
 
   useEffect(() => {
     async function fetchData() {
@@ -37,11 +38,9 @@ export default function ProjectPage() {
         const projectData = await getProject(id);
         setProject(projectData);
         
-        // Fetch clips if project is loaded
-        // Note: In our current API, getProject only returns project info.
-        // We need another call or update the API to return clips.
-        // For now let's try to get job status to see clips.
-        const jobData = await getJob(id); // Using project ID as job lookup for now
+        // Fetch job by project ID to get the JOB ID and clips
+        const jobData = await getJobByProject(id);
+        setCurrentJob(jobData);
         if (jobData.clips) {
           setClips(jobData.clips);
         }
@@ -57,13 +56,13 @@ export default function ProjectPage() {
 
   // Update local state when live job data comes in
   useEffect(() => {
-    if (liveJob?.status === 'COMPLETED') {
+    if (liveJob?.status === 'COMPLETED' && currentJob?.id) {
       // Refresh clips
-      getJob(id!).then(data => {
+      getJob(currentJob.id).then(data => {
         if (data.clips) setClips(data.clips);
       });
     }
-  }, [liveJob?.status, id]);
+  }, [liveJob?.status, currentJob?.id]);
 
   const handlePlayClip = (clip: Clip) => {
     setActiveClip(clip);
@@ -90,8 +89,8 @@ export default function ProjectPage() {
     );
   }
 
-  const currentStatus = liveJob?.status || 'PENDING';
-  const currentProgress = liveJob?.progressPercent || 0;
+  const currentStatus = liveJob?.status || currentJob?.status || 'PENDING';
+  const currentProgress = liveJob?.progressPercent ?? currentJob?.progressPercent ?? 0;
 
   return (
     <div className="space-y-8 pb-20">
@@ -131,7 +130,7 @@ export default function ProjectPage() {
           <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
           <div>
             <h3 className="text-red-400 font-bold mb-1">Processing Failed</h3>
-            <p className="text-zinc-500 text-sm">{liveJob?.failedReason || 'An unknown error occurred during video processing.'}</p>
+            <p className="text-zinc-500 text-sm">{liveJob?.failedReason || currentJob?.failedReason || 'An unknown error occurred during video processing.'}</p>
             <button className="mt-4 text-sm font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-4">
               Try again
             </button>

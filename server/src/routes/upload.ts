@@ -17,12 +17,15 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' }).post(
       return { error: 'No video file uploaded' };
     }
 
-    // 2. Validate MIME type
-    const validMimes = ['video/mp4', 'video/quicktime', 'video/webm'];
-    if (!validMimes.includes(file.type)) {
+    // 2. Validate MIME type or extension
+    const validMimes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'];
+    const validExtensions = ['.mp4', '.mov', '.webm', '.mkv'];
+    const extension = path.extname(file.name).toLowerCase();
+    
+    if (!validMimes.includes(file.type) && !validExtensions.includes(extension)) {
       set.status = 400;
       return {
-        error: 'Invalid file type. Only MP4, MOV, and WebM are supported',
+        error: `Invalid file type (${file.type}). Only MP4, MOV, WebM, and MKV are supported.`,
       };
     }
 

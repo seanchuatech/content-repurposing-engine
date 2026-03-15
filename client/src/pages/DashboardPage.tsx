@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Video, Clock, ChevronRight } from 'lucide-react';
 import { getProjects } from '../lib/api';
-import { Project } from '../types/video';
+import type { Project } from '../types/video';
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);

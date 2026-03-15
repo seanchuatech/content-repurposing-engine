@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Job, JobStatus } from '../types/video';
+import type { Job, JobStatus } from '../types/video';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -14,7 +14,8 @@ export function useJobStatus(jobId: string | undefined) {
 
     eventSource.addEventListener('progress', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const payload = JSON.parse(event.data);
+        const data = payload.data || payload; // Handle both structured and flat formats
         setJob((prev) => ({
           ...prev,
           status: data.status,
@@ -28,13 +29,13 @@ export function useJobStatus(jobId: string | undefined) {
 
     eventSource.addEventListener('completed', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const payload = JSON.parse(event.data);
+        const data = payload.data || payload;
         setJob((prev) => ({
           ...prev,
           status: data.status,
           progressPercent: 100,
         }));
-        // We might want to trigger a data refresh in the parent component here
       } catch (err) {
         console.error('Failed to parse job completion:', err);
       }
@@ -42,11 +43,12 @@ export function useJobStatus(jobId: string | undefined) {
 
     eventSource.addEventListener('failed', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const payload = JSON.parse(event.data);
+        const data = payload.data || payload;
         setJob((prev) => ({
           ...prev,
           status: 'FAILED',
-          failedReason: data.error,
+          failedReason: data.error || data.failedReason,
         }));
       } catch (err) {
         console.error('Failed to parse job failure:', err);

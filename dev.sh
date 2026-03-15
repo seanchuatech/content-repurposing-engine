@@ -12,5 +12,5 @@ npx --yes concurrently \
   -c "blue.bold,yellow.bold,green.bold" \
   -n "SERVER,WORKER,CLIENT" \
   "cd server && bun install && bun run dev" \
-  "cd workers && uv sync && uv run python src/main.py" \
+  "cd workers && uv sync && PYTHONPATH=. uv run python src/main.py" \
   "cd client && bun install && bun run dev"

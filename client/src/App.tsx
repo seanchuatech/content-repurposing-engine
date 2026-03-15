@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 // Lazy load pages
@@ -17,7 +17,7 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route element={<DashboardLayout />}>
@@ -28,7 +28,7 @@ function App() {
           </Route>
         </Routes>
       </Suspense>
-    </BrowserRouter>
+    </Router>
   );
 }
 

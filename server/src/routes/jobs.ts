@@ -1,12 +1,41 @@
-import { Stream } from '@elysiajs/stream';
 import { eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
-import { videoProcessingQueue } from '../queue/connection';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
+  // Get job by Project ID
+  .get(
+    '/project/:projectId',
+    async ({ params: { projectId }, set }) => {
+      const job = await db
+        .select()
+        .from(jobs)
+        .where(eq(jobs.projectId, projectId))
+        .get();
+      
+      if (!job) {
+        set.status = 404;
+        return { error: 'Job not found for this project' };
+      }
+
+      let resultClips: (typeof clips.$inferSelect)[] = [];
+      if (job.status === JobState.COMPLETED) {
+        resultClips = await db
+          .select()
+          .from(clips)
+          .where(eq(clips.jobId, job.id))
+          .all();
+      }
+
+      return { ...job, clips: resultClips };
+    },
+    {
+      params: t.Object({ projectId: t.String() }),
+    }
+  )
+
   // Get job status via REST
   .get(
     '/:id',
@@ -17,7 +46,6 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         return { error: 'Job not found' };
       }
 
-      // If completed, fetch the associated clips
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
         resultClips = await db
@@ -31,10 +59,10 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     },
     {
       params: t.Object({ id: t.String() }),
-    },
+    }
   )
 
-  // PATCH job status and progress (used by workers)
+  // PATCH job status and progress
   .patch(
     '/:id',
     async ({ params: { id }, body, set }) => {
@@ -70,70 +98,90 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         progressPercent: t.Optional(t.Number()),
         failedReason: t.Optional(t.String()),
       }),
-    },
+    }
   )
 
-  // SSE Endpoint for real-time progress
-  // biome-ignore lint/suspicious/noExplicitAny: Stream signature has tricky types
+  // SSE Endpoint using native ReadableStream
   .get(
     '/:id/events',
-    ({ params: { id } }) =>
-      new Stream(async (stream: any) => {
-        stream.event = 'connected';
-        stream.send({ message: 'Connected to Job Stream', jobId: id });
+    ({ params: { id }, set }) => {
+      set.headers['Content-Type'] = 'text/event-stream';
+      set.headers['Cache-Control'] = 'no-cache';
+      set.headers['Connection'] = 'keep-alive';
 
-        let isAlive = true;
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          
+          const sendEvent = (event: string, data: any) => {
+            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+          };
 
-        // Clean up when the client disconnects
-        stream.on('close', () => {
-          isAlive = false;
-        });
+          sendEvent('connected', { message: 'Connected to Job Stream', jobId: id });
 
-        // 2. Poll DB and BullMQ for live events
-        // In a fully optimized system, we could subscribe to Redis pub-sub,
-        // but DB polling is perfectly acceptable for the MVP scale.
-        while (isAlive) {
-          const job = await db.select().from(jobs).where(eq(jobs.id, id)).get();
+          let isAlive = true;
+          
+          // Poll loop
+          while (isAlive) {
+            try {
+              const job = await db.select().from(jobs).where(eq(jobs.id, id)).get();
 
-          if (!job) {
-            stream.event = 'error';
-            stream.send({ error: 'Job not found' });
-            stream.close();
-            break;
+              if (!job) {
+                sendEvent('error', { error: 'Job not found' });
+                isAlive = false;
+                controller.close();
+                break;
+              }
+
+              sendEvent('progress', {
+                status: job.status,
+                progressPercent: job.progressPercent,
+                failedReason: job.failedReason,
+              });
+
+              if (job.status === JobState.COMPLETED) {
+                const resultClips = await db
+                  .select()
+                  .from(clips)
+                  .where(eq(clips.jobId, id))
+                  .all();
+                sendEvent('completed', { status: job.status, clips: resultClips });
+                isAlive = false;
+                controller.close();
+                break;
+              }
+
+              if (job.status === JobState.FAILED) {
+                sendEvent('failed', { status: job.status, error: job.failedReason });
+                isAlive = false;
+                controller.close();
+                break;
+              }
+            } catch (e) {
+              console.error('Error in SSE loop:', e);
+              isAlive = false;
+              controller.error(e);
+              break;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-
-          stream.event = 'progress';
-          stream.send({
-            status: job.status,
-            progressPercent: job.progressPercent,
-            failedReason: job.failedReason,
-          });
-
-          // If job is in terminal state, fetch clips, send final payload, and close the stream
-          if (job.status === JobState.COMPLETED) {
-            const resultClips = await db
-              .select()
-              .from(clips)
-              .where(eq(clips.jobId, id))
-              .all();
-            stream.event = 'completed';
-            stream.send({ status: job.status, clips: resultClips });
-            stream.close();
-            break;
-          }
-
-          if (job.status === JobState.FAILED) {
-            stream.event = 'failed';
-            stream.send({ status: job.status, error: job.failedReason });
-            stream.close();
-            break;
-          }
-
-          // Wait 1 second between ticks
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+        },
+        cancel() {
+          // This runs when user closes the tab
+          console.log(`SSE connection closed for job ${id}`);
         }
-      }),
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    },
     {
       params: t.Object({ id: t.String() }),
-    },
+    }
   );

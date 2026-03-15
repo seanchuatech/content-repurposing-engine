@@ -34,3 +34,9 @@ export async function getJob(id: string) {
   if (!response.ok) throw new Error('Failed to fetch job');
   return response.json();
 }
+
+export async function getJobByProject(projectId: string) {
+  const response = await fetch(`${API_BASE_URL}/jobs/project/${projectId}`);
+  if (!response.ok) throw new Error('Failed to fetch job for project');
+  return response.json();
+}

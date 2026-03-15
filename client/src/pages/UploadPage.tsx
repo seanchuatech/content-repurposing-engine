@@ -21,8 +21,14 @@ export default function UploadPage() {
   }, []);
 
   const validateFile = (file: File) => {
-    const validMimes = ['video/mp4', 'video/quicktime', 'video/webm'];
-    if (!validMimes.includes(file.type)) {
+    const validMimes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-matroska'];
+    const validExtensions = ['.mp4', '.mov', '.webm', '.mkv'];
+    const fileExtension = file.name.toLowerCase().slice(((file.name.lastIndexOf(".") - 1) >>> 0) + 2);
+    
+    const isValidMime = validMimes.includes(file.type);
+    const isValidExtension = validExtensions.includes(`.${fileExtension}`);
+
+    if (!isValidMime && !isValidExtension) {
       setErrorMessage('Invalid file type. Only MP4, MOV, and WebM are supported.');
       return false;
     }
