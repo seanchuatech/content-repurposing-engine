@@ -189,9 +189,9 @@ monitoring job progress.
 
 #### 4a. App Shell & Routing
 
-- [ ] Set up React Router with lazy-loaded routes
-- [ ] Build layout components: `Sidebar`, `Header`, `DashboardLayout`
-- [ ] Define routes: `/`, `/upload`, `/projects/:id`, `/settings`
+- [x] Set up React Router with lazy-loaded routes
+- [x] Build layout components: `Sidebar`, `Header`, `DashboardLayout`
+- [x] Define routes: `/`, `/upload`, `/projects/:id`, `/settings`
 
 **Manual Verification**
 1.  Navigate to `/upload`, `/projects/1`, and `/settings`.
@@ -199,9 +199,9 @@ monitoring job progress.
 
 #### 4b. Upload Page
 
-- [ ] Drag-and-drop file upload with progress indicator
-- [ ] File type and size validation (client-side, before upload)
-- [ ] POST to `/api/upload`, show upload progress
+- [x] Drag-and-drop file upload with progress indicator
+- [x] File type and size validation (client-side, before upload)
+- [x] POST to `/api/upload`, show upload progress
 
 **Manual Verification**
 1.  Drag a video into the upload zone.
@@ -210,9 +210,9 @@ monitoring job progress.
 
 #### 4c. Dashboard Page
 
-- [ ] List all projects with status badges (processing, completed, failed)
-- [ ] Show thumbnail, title, date, clip count per project
-- [ ] Link to individual project page
+- [x] List all projects with status badges (processing, completed, failed)
+- [x] Show thumbnail, title, date, clip count per project
+- [x] Link to individual project page
 
 **Manual Verification**
 1.  Open the dashboard.
@@ -221,11 +221,11 @@ monitoring job progress.
 
 #### 4d. Project Page
 
-- [ ] Display original video with HTML5 player
-- [ ] Show processing progress (SSE-powered real-time updates)
-- [ ] List generated clips with preview thumbnails
-- [ ] Play individual clips inline
-- [ ] Download clips (single or batch)
+- [x] Display original video with HTML5 player
+- [x] Show processing progress (SSE-powered real-time updates)
+- [x] List generated clips with preview thumbnails
+- [x] Play individual clips inline
+- [x] Download clips (single or batch)
 
 **Manual Verification**
 1.  While a video is processing, verify the Project Page shows a live progress bar and stage status (e.g., "Transcribing...").
@@ -234,10 +234,10 @@ monitoring job progress.
 
 #### 4e. Job Progress
 
-- [ ] `useJobStatus` hook: connect to SSE endpoint for real-time updates
-- [ ] Show pipeline stage progress (transcribing → analyzing → clipping →
+- [x] `useJobStatus` hook: connect to SSE endpoint for real-time updates
+- [x] Show pipeline stage progress (transcribing → analyzing → clipping →
       captioning → reframing)
-- [ ] Handle error states gracefully with retry option
+- [x] Handle error states gracefully with retry option
 
 **Manual Verification**
 1.  Disconnect the worker during a job.

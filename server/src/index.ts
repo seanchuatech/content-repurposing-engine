@@ -1,4 +1,5 @@
 import { cors } from '@elysiajs/cors';
+import { staticPlugin } from '@elysiajs/static';
 import { Elysia } from 'elysia';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
@@ -15,6 +16,10 @@ const app = new Elysia()
   .use(cors())
   .use(logger)
   .use(errorHandler)
+  .use(staticPlugin({
+    assets: '../storage',
+    prefix: '/storage'
+  }))
 
   // Health checks
   .get('/healthz', () => ({ status: 'ok' }))
