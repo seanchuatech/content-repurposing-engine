@@ -85,4 +85,15 @@ export const clips = sqliteTable('clips', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
+
+// 5. Settings - global configuration
+export const settings = sqliteTable('settings', {
+  id: text('id').primaryKey().default('global'),
+  whisperModel: text('whisper_model').default('base').notNull(),
+  llmBackend: text('llm_backend').default('openai').notNull(),
+  llmModel: text('llm_model').default('gpt-4o').notNull(),
+  exportQuality: text('export_quality').default('high').notNull(), // low, medium, high
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
 });

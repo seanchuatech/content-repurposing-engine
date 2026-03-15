@@ -290,7 +290,7 @@ documentation.
 - [x] Add clip editing: allow user to adjust start/end times before export
 - [x] Add clip metadata: auto-generate titles, descriptions, and hashtags
 - [x] YouTube URL import (download via `yt-dlp`)
-- [ ] Settings page: configure Whisper model, LLM provider, export quality
+- [x] Settings page: configure Whisper model, LLM provider, export quality
 - [ ] Dockerize the full stack (client + server + worker + Redis)
 - [ ] Write comprehensive `README.md` with setup instructions
 - [ ] Add `.env.example` with all variables documented

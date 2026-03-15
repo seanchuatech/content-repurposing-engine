@@ -58,11 +58,7 @@ async def update_remote_video_metadata(video_id: str, file_path: str, duration: 
 async def fetch_clip_from_server(clip_id: str) -> Clip:
     """
     Fetches a specific clip's metadata from the server.
-    Note: We need to implement this endpoint or find a way to get it.
-    For now we'll assume we can get it via a project lookup or similar.
-    Actually let's just add it to the server routes.
     """
-    # Assuming GET /projects/clips/:clipId exists (we'll add it)
     url = f"{config.SERVER_URL}/projects/clips/{clip_id}"
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
@@ -77,6 +73,21 @@ async def fetch_clip_from_server(clip_id: str) -> Clip:
             virality_score=data["viralityScore"] or 0,
             explanation=data["explanation"] or ""
         )
+
+
+async def fetch_global_settings() -> dict:
+    """
+    Fetches the global settings from the server.
+    """
+    url = f"{config.SERVER_URL}/settings"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch global settings: {e}")
+        return {}
 
 
 async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_data):
@@ -108,13 +119,19 @@ async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_
 async def process_video_job(job: Job, token: str):
     logger.info(f"Processing job {job.id} for project {job.data.get('projectId')}")
     try:
+        # 0. Fetch global settings
+        settings = await fetch_global_settings()
+        whisper_model = settings.get("whisperModel")
+        llm_backend = settings.get("llmBackend")
+        llm_model = settings.get("llmModel")
+        
         payload = JobPayload(**job.data)
         logger.debug(f"Payload loaded: {payload}")
 
         current_file_path = payload.filePath
         only_clip_id = job.data.get("onlyClipId")
 
-        # 0. Handle YouTube Download
+        # 1. Handle YouTube Download
         if current_file_path.startswith('http'):
             logger.info(f"YouTube URL detected: {current_file_path}. Downloading...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 2)
@@ -127,13 +144,10 @@ async def process_video_job(job: Job, token: str):
             logger.info(f"Regenerating single clip: {only_clip_id}")
             clip = await fetch_clip_from_server(only_clip_id)
             
-            # Load transcript from temp storage (required for captions)
-            # We assume it exists from the first run
             transcript_path = os.path.join(config.PROJECT_ROOT, "storage", "temp", clip.job_id, "transcript.json")
             if not os.path.exists(transcript_path):
-                # Fallback: re-transcribe if missing
                 logger.warning("Transcript missing for regeneration, re-transcribing...")
-                transcript = await transcribe_video(payload.jobId, current_file_path)
+                transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
             else:
                 with open(transcript_path, "r") as f:
                     transcript = json.load(f)
@@ -157,7 +171,7 @@ async def process_video_job(job: Job, token: str):
         # 1. Transcribe
         logger.info(f"Stage 1: Transcribing {current_file_path}...")
         await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
-        transcript = await transcribe_video(payload.jobId, current_file_path)
+        transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
         
         duration = transcript.get('segments', [])[-1].get('end', 0) if transcript.get('segments') else 0
         await update_remote_video_metadata(payload.videoId, current_file_path, duration)
@@ -165,7 +179,7 @@ async def process_video_job(job: Job, token: str):
         # 2. Analyze
         logger.info("Stage 2: Analyzing...")
         await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
-        clips = await analyze_transcript(payload.jobId, transcript)
+        clips = await analyze_transcript(payload.jobId, transcript, llm_backend=llm_backend, llm_model=llm_model)
         if not clips:
             await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
             return "SUCCESS_NO_CLIPS"
