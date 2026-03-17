@@ -39,7 +39,7 @@ JSON output format:
 }}
 """
 
-async def analyze_transcript(job_id: str, transcript: dict) -> list[Clip]:
+async def analyze_transcript(job_id: str, transcript: dict, llm_backend: str = None, llm_model: str = None) -> list[Clip]:
     logger.info(f"Analyzing transcript for viral moments (Job: {job_id})...")
     
     # 1. Extract text from transcript
@@ -56,7 +56,7 @@ async def analyze_transcript(job_id: str, transcript: dict) -> list[Clip]:
     prompt = PROMPT_TEMPLATE.format(transcript_text=transcript_text)
     
     try:
-        result = await llm_service.generate_json(prompt, SYSTEM_PROMPT)
+        result = await llm_service.generate_json(prompt, SYSTEM_PROMPT, backend=llm_backend, model=llm_model)
         raw_clips = result.get("clips", [])
         
         clips = []

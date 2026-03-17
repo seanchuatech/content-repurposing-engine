@@ -12,6 +12,7 @@ from src.pipeline.caption import generate_captions
 from src.pipeline.clip import extract_clip
 from src.pipeline.reframe import reframe_clip
 from src.pipeline.transcribe import transcribe_video
+from src.pipeline.utils.transcript_parser import parse_transcript_file
 from src.services.youtube_service import download_youtube_video
 
 
@@ -119,14 +120,14 @@ async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_
 async def process_video_job(job: Job, token: str):
     logger.info(f"Processing job {job.id} for project {job.data.get('projectId')}")
     try:
-        # 0. Fetch global settings
-        settings = await fetch_global_settings()
-        whisper_model = settings.get("whisperModel")
-        llm_backend = settings.get("llmBackend")
-        llm_model = settings.get("llmModel")
-        
         payload = JobPayload(**job.data)
         logger.debug(f"Payload loaded: {payload}")
+
+        # 0. Fetch settings with overrides
+        settings = await fetch_global_settings()
+        whisper_model = payload.whisperModel or settings.get("whisperModel")
+        llm_backend = settings.get("llmBackend")
+        llm_model = settings.get("llmModel")
 
         current_file_path = payload.filePath
         only_clip_id = job.data.get("onlyClipId")
@@ -135,8 +136,30 @@ async def process_video_job(job: Job, token: str):
         if current_file_path.startswith('http'):
             logger.info(f"YouTube URL detected: {current_file_path}. Downloading...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 2)
-            downloaded_path = await download_youtube_video(current_file_path, payload.jobId)
+            downloaded_path, subtitle_path = await download_youtube_video(current_file_path, payload.jobId)
             current_file_path = downloaded_path
+            
+            # If YouTube provided subtitles, parse them and save to temp
+            if subtitle_path and payload.useYouTubeSubtitles:
+                try:
+                    logger.info(f"Parsing YouTube subtitles from {subtitle_path}")
+                    subtitle_path_abs = os.path.join(config.PROJECT_ROOT, subtitle_path)
+                    transcript = parse_transcript_file(subtitle_path_abs)
+                    
+                    # Save to temp storage so other stages can find it
+                    temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", payload.jobId)
+                    os.makedirs(temp_dir, exist_ok=True)
+                    transcript_path = os.path.join(temp_dir, "transcript.json")
+                    with open(transcript_path, "w") as f:
+                        json.dump(transcript, f, indent=2)
+                    
+                    logger.info("Successfully ingested YouTube subtitles. Will skip transcription.")
+                except Exception as e:
+                    logger.error(f"Failed to parse YouTube subtitles: {e}. Will fallback to Whisper.")
+                    transcript = None
+            else:
+                transcript = None
+
             await update_remote_video_metadata(payload.videoId, current_file_path)
 
         # CASE A: REGENERATE SINGLE CLIP
@@ -168,18 +191,38 @@ async def process_video_job(job: Job, token: str):
             return "REGENERATION_SUCCESS"
 
         # CASE B: FULL PIPELINE
-        # 1. Transcribe
-        logger.info(f"Stage 1: Transcribing {current_file_path}...")
-        await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
-        transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
+        # 1. Transcribe (only if not already ingested from YouTube)
+        if not transcript:
+            logger.info(f"Stage 1: Transcribing {current_file_path}...")
+            await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
+            transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
+        else:
+            logger.info("Stage 1: Ingested subtitles found, skipping transcription.")
         
         duration = transcript.get('segments', [])[-1].get('end', 0) if transcript.get('segments') else 0
         await update_remote_video_metadata(payload.videoId, current_file_path, duration)
 
         # 2. Analyze
-        logger.info("Stage 2: Analyzing...")
-        await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
-        clips = await analyze_transcript(payload.jobId, transcript, llm_backend=llm_backend, llm_model=llm_model)
+        if payload.manualSegments:
+            logger.info("Stage 2: Manual segments detected, skipping analysis.")
+            await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
+            clips = [
+                Clip(
+                    id=f"{payload.jobId}_{i}",
+                    job_id=payload.jobId,
+                    start_time=s["start"],
+                    end_time=s["end"],
+                    title=s["title"],
+                    virality_score=100,
+                    explanation="Manual selection"
+                )
+                for i, s in enumerate(payload.manualSegments)
+            ]
+        else:
+            logger.info("Stage 2: Analyzing...")
+            await update_remote_job_status(payload.jobId, JobState.ANALYZING, 30)
+            clips = await analyze_transcript(payload.jobId, transcript, llm_backend=llm_backend, llm_model=llm_model)
+        
         if not clips:
             await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
             return "SUCCESS_NO_CLIPS"

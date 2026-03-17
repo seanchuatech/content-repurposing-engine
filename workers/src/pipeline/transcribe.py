@@ -5,7 +5,7 @@ from src.config import config
 from src.logger import logger
 from src.services.whisper_service import transcribe_sync
 
-async def transcribe_video(job_id: str, video_path_rel: str) -> dict:
+async def transcribe_video(job_id: str, video_path_rel: str, model_name: str = None) -> dict:
     """
     Transcribes a video file using OpenAI Whisper and saves results to temp storage.
     """
@@ -18,7 +18,7 @@ async def transcribe_video(job_id: str, video_path_rel: str) -> dict:
     logger.info(f"Starting transcription for {video_path_abs}")
     
     # Run Whisper in a separate thread to avoid blocking the event loop
-    result = await asyncio.to_thread(transcribe_sync, video_path_abs)
+    result = await asyncio.to_thread(transcribe_sync, video_path_abs, model_name=model_name)
     
     # Prepare temp storage directory
     temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", job_id)

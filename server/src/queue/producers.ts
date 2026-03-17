@@ -5,6 +5,9 @@ export type VideoProcessingJobPayload = {
   projectId: string;
   videoId: string;
   filePath: string;
+  manualSegments?: { start: number; end: number; title: string }[];
+  whisperModel?: string;
+  useYouTubeSubtitles?: boolean;
 };
 
 export async function dispatchVideoProcessingJob(

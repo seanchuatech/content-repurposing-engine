@@ -37,12 +37,20 @@ venv/
 .ruff_cache/
 
 # Storage
-storage/uploads/*
-!storage/uploads/.gitkeep
-storage/clips/*
-!storage/clips/.gitkeep
-storage/temp/*
-!storage/temp/.gitkeep
+**/storage/uploads/*
+!**/storage/uploads/.gitkeep
+**/storage/clips/*
+!**/storage/clips/.gitkeep
+**/storage/temp/*
+!**/storage/temp/.gitkeep
+
+# Media & Temp Content
+*.mp4
+*.vtt
+*.flac
+*.m4a
+*.part
+output*.txt
 
 # IDEs & OS
 .idea/
@@ -55,3 +63,8 @@ storage/temp/*
 *.njsproj
 *.sln
 *.sw?
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3

@@ -16,6 +16,9 @@ class JobPayload(BaseModel):
     projectId: str
     videoId: str
     filePath: str
+    whisperModel: str | None = None
+    manualSegments: list[dict] | None = None
+    useYouTubeSubtitles: bool = True
 
     class Config:
         populate_by_name = True

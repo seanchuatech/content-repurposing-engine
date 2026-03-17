@@ -62,6 +62,7 @@ export const jobs = sqliteTable('jobs', {
   updatedAt: integer('updated_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),
+  manualJobData: text('manual_job_data'), // JSON blob for overrides and manual segments
 });
 
 // 4. Clips - the generated output videos

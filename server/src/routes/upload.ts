@@ -65,6 +65,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           videoId,
           status: JobState.PENDING,
           progressPercent: 0,
+          manualJobData: body.manualSegments ? JSON.stringify(body.manualSegments) : null,
         });
 
         // 7. Dispatch the background processing job
@@ -73,6 +74,8 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           projectId,
           videoId,
           filePath: relativePath,
+          whisperModel: body.whisperModel,
+          manualSegments: body.manualSegments,
         });
 
         // 8. Return exactly what the client needs to start tracking progress
@@ -90,6 +93,12 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
     {
       body: t.Object({
         file: t.File(),
+        whisperModel: t.Optional(t.String()),
+        manualSegments: t.Optional(t.Array(t.Object({
+          start: t.Number(),
+          end: t.Number(),
+          title: t.String(),
+        }))),
       }),
     },
   )
@@ -129,6 +138,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           videoId,
           status: JobState.PENDING,
           progressPercent: 0,
+          manualJobData: body.manualSegments ? JSON.stringify(body.manualSegments) : null,
         });
 
         // Dispatch Job with URL
@@ -136,7 +146,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           jobId,
           projectId,
           videoId,
-          filePath: url, // Passing URL instead of file path
+          filePath: url,
+          whisperModel: body.whisperModel,
+          manualSegments: body.manualSegments,
+          useYouTubeSubtitles: body.useYouTubeSubtitles,
         });
 
         return {
@@ -153,6 +166,13 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
     {
       body: t.Object({
         url: t.String(),
+        whisperModel: t.Optional(t.String()),
+        useYouTubeSubtitles: t.Optional(t.Boolean()),
+        manualSegments: t.Optional(t.Array(t.Object({
+          start: t.Number(),
+          end: t.Number(),
+          title: t.String(),
+        }))),
       }),
     }
   );

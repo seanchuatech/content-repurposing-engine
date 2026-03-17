@@ -6,6 +6,7 @@ import { logger } from './middleware/logger';
 import { videoProcessingEvents } from './queue/events';
 import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
+import { settingsRoutes } from './routes/settings';
 import { uploadRoutes } from './routes/upload';
 
 // Log that we've initialized the events listener
@@ -27,7 +28,7 @@ const app = new Elysia()
 
   // Mount API groups
   .group('/api', (app) =>
-    app.use(projectsRoutes).use(uploadRoutes).use(jobsRoutes),
+    app.use(projectsRoutes).use(uploadRoutes).use(jobsRoutes).use(settingsRoutes),
   );
 
 app.listen(process.env.PORT || 3000);

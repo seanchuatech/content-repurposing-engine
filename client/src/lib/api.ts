@@ -1,8 +1,21 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-export async function uploadVideo(file: File) {
+export interface UploadOptions {
+  whisperModel?: string;
+  manualSegments?: { start: number; end: number; title: string }[];
+}
+
+export async function uploadVideo(file: File, options?: UploadOptions) {
   const formData = new FormData();
   formData.append('file', file);
+  
+  if (options?.whisperModel) {
+    formData.append('whisperModel', options.whisperModel);
+  }
+  
+  if (options?.manualSegments) {
+    formData.append('manualSegments', JSON.stringify(options.manualSegments));
+  }
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
@@ -12,6 +25,28 @@ export async function uploadVideo(file: File) {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Upload failed');
+  }
+
+  return response.json();
+}
+
+export interface YouTubeOptions extends UploadOptions {
+  useYouTubeSubtitles?: boolean;
+}
+
+export async function importFromYouTube(url: string, options?: YouTubeOptions) {
+  const response = await fetch(`${API_BASE_URL}/upload/youtube`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url,
+      ...options
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Import failed');
   }
 
   return response.json();
