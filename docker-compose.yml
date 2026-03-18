@@ -3,11 +3,96 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
+    container_name: content-engine-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - content-engine-net
     command: redis-server --appendonly yes
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: content-engine-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - content-engine-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: content-engine-server
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=file:/app/data/content-engine.db
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_BACKEND=local
+    volumes:
+      - ./storage:/app/storage
+      - ./content-engine.db:/app/data/content-engine.db
+    depends_on:
+      - redis
+    networks:
+      - content-engine-net
+
+  worker:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    container_name: content-engine-worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WHISPER_MODEL=tiny
+      - DEVICE=cpu
+      - OLLAMA_URL=http://ollama:11434
+      - SERVER_URL=http://server:3000/api
+      - LLM_BACKEND=ollama
+      - LLM_MODEL=llama3
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      - redis
+      - ollama
+      - server
+    networks:
+      - content-engine-net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: content-engine-client
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    networks:
+      - content-engine-net
+
+  db-ui:
+    image: coleifer/sqlite-web
+    container_name: content-engine-db-ui
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./content-engine.db:/data/content-engine.db
+    environment:
+      - SQLITE_DATABASE=content-engine.db
+    networks:
+      - content-engine-net
+
+networks:
+  content-engine-net:
+    driver: bridge
 
 volumes:
   redis_data:
+  ollama_data:

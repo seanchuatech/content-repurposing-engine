@@ -2,9 +2,9 @@
 
 echo "🚀 Starting Content Repurposing Engine Native Dev Environment..."
 
-# 1. Start Redis in the background via Docker Compose
-echo "📦 Ensuring Redis is running..."
-docker-compose up -d redis
+# 1. Start Infrastructure in the background via Docker Compose
+echo "📦 Ensuring Redis, Ollama, and DB UI are running..."
+docker compose up -d redis ollama db-ui
 
 # 2. Install dependencies once at the root (Bun workspace handles subfolders)
 echo "📦 Installing dependencies..."
