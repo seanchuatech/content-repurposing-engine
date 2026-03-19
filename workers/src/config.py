@@ -3,7 +3,7 @@ import os
 
 class Config:
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6380"))
 
     # base, tiny, small, medium, large-v3
     WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")

@@ -6,7 +6,7 @@ import { db } from '../db/client';
 import { jobs } from '../db/schema';
 
 // Dedicated connection for QueueEvents (mandatory maxRetriesPerRequest: null)
-const eventConnection = new IORedis('redis://localhost:6379', {
+const eventConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6380', {
   maxRetriesPerRequest: null,
 });
 

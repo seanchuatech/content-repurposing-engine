@@ -188,7 +188,7 @@ async def process_video_job(job: Job, token: str):
             await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
             
             await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
-            return "REGENERATION_SUCCESS"
+            return {"status": "REGENERATION_SUCCESS"}
 
         # CASE B: FULL PIPELINE
         # 1. Transcribe (only if not already ingested from YouTube)
@@ -225,7 +225,7 @@ async def process_video_job(job: Job, token: str):
         
         if not clips:
             await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
-            return "SUCCESS_NO_CLIPS"
+            return {"status": "SUCCESS_NO_CLIPS"}
 
         # 3, 4, 5. Clip, Caption, Reframe
         total_clips = len(clips)
@@ -245,7 +245,7 @@ async def process_video_job(job: Job, token: str):
 
         await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
         logger.info(f"Completed job {job.id}")
-        return "SUCCESS"
+        return {"status": "SUCCESS"}
 
     except Exception as e:
         logger.exception(f"Failed to process job {job.id}")
