@@ -18,13 +18,16 @@ async def extract_clip(video_path_rel: str, clip: Clip) -> str:
     output_filename = f"{clip.id}_raw.mp4" # Raw clip before captioning/reframing
     output_path_abs = os.path.join(clips_dir, output_filename)
     
-    logger.info(f"Extracting clip {clip.id} ({clip.start_time}s - {clip.end_time}s) from {video_path_abs}")
+    # Add 3 seconds to end_time to avoid abrupt cuts
+    padded_end_time = clip.end_time + 3.0
+    
+    logger.info(f"Extracting clip {clip.id} ({clip.start_time}s - {padded_end_time}s) from {video_path_abs}")
     
     await ffmpeg_service.extract_segment(
         video_path_abs,
         output_path_abs,
         clip.start_time,
-        clip.end_time
+        padded_end_time
     )
     
     # Return path relative to PROJECT_ROOT for consistency

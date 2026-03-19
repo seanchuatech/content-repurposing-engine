@@ -30,10 +30,11 @@ async def generate_captions(clip_path_rel: str, clip: Clip, transcript: dict) ->
         # Fallback to segments if word-level data is missing
         all_words = transcript.get("segments", [])
 
-    # Filter words within the clip's timeframe
+    # Filter words within the clip's timeframe (including 3s padding)
+    padded_end_time = clip.end_time + 3.0
     clip_words = [
         w for w in all_words 
-        if w.get("start", 0) >= clip.start_time and w.get("end", 0) <= clip.end_time
+        if w.get("start", 0) >= clip.start_time and w.get("end", 0) <= padded_end_time
     ]
     
     if not clip_words:
