@@ -17,12 +17,17 @@ const LLM_MODELS = {
     { value: 'gemma:2b', label: 'Gemma 2B (Very Light)' },
     { value: 'qwen2:1.5b', label: 'Qwen 2 1.5B (Ultra Fast)' },
   ],
+  gemini: [
+    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Highest Free Limits)' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Best Balance)' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Max Reasoning)' },
+  ],
 };
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     whisperModel: 'base',
-    llmBackend: 'openai' as 'openai' | 'ollama',
+    llmBackend: 'openai' as 'openai' | 'ollama' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
   });
@@ -38,7 +43,7 @@ export default function SettingsPage() {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
-            llmBackend: data.llmBackend as 'openai' | 'ollama',
+            llmBackend: data.llmBackend as 'openai' | 'ollama' | 'gemini',
             llmModel: data.llmModel,
             exportQuality: data.exportQuality,
           });
@@ -52,7 +57,7 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
-  const handleProviderChange = (provider: 'openai' | 'ollama') => {
+  const handleProviderChange = (provider: 'openai' | 'ollama' | 'gemini') => {
     const defaultModel = LLM_MODELS[provider][0].value;
     setSettings({
       ...settings,
@@ -150,9 +155,10 @@ export default function SettingsPage() {
                 <select 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmBackend}
-                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'ollama')}
+                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'ollama' | 'gemini')}
                 >
                   <option value="openai">OpenAI (Cloud)</option>
+                  <option value="gemini">Gemini (Cloud / Free Tier)</option>
                   <option value="ollama">Ollama (Local)</option>
                 </select>
               </div>
@@ -164,7 +170,7 @@ export default function SettingsPage() {
                   value={settings.llmModel}
                   onChange={(e) => setSettings({ ...settings, llmModel: e.target.value })}
                 >
-                  {LLM_MODELS[settings.llmBackend].map((model) => (
+                  {(LLM_MODELS[settings.llmBackend as keyof typeof LLM_MODELS] || []).map((model: any) => (
                     <option key={model.value} value={model.value}>
                       {model.label}
                     </option>
