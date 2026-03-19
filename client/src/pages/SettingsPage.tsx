@@ -3,10 +3,26 @@ import { Save, Shield, Cpu, Sparkles, Sliders } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
+const LLM_MODELS = {
+  openai: [
+    { value: 'gpt-4o', label: 'GPT-4o (Most Capable)' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Fast & Cheap)' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  ],
+  ollama: [
+    { value: 'phi3:latest', label: 'Phi-3 Mini (Fastest / Recommended)' },
+    { value: 'mistral', label: 'Mistral 7B (Good Balance)' },
+    { value: 'llama3', label: 'Llama 3 8B (Smartest / Slower)' },
+    { value: 'gemma:2b', label: 'Gemma 2B (Very Light)' },
+    { value: 'qwen2:1.5b', label: 'Qwen 2 1.5B (Ultra Fast)' },
+  ],
+};
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     whisperModel: 'base',
-    llmBackend: 'openai',
+    llmBackend: 'openai' as 'openai' | 'ollama',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
   });
@@ -22,7 +38,7 @@ export default function SettingsPage() {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
-            llmBackend: data.llmBackend,
+            llmBackend: data.llmBackend as 'openai' | 'ollama',
             llmModel: data.llmModel,
             exportQuality: data.exportQuality,
           });
@@ -35,6 +51,15 @@ export default function SettingsPage() {
     }
     fetchSettings();
   }, []);
+
+  const handleProviderChange = (provider: 'openai' | 'ollama') => {
+    const defaultModel = LLM_MODELS[provider][0].value;
+    setSettings({
+      ...settings,
+      llmBackend: provider,
+      llmModel: defaultModel,
+    });
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +150,7 @@ export default function SettingsPage() {
                 <select 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmBackend}
-                  onChange={(e) => setSettings({ ...settings, llmBackend: e.target.value })}
+                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'ollama')}
                 >
                   <option value="openai">OpenAI (Cloud)</option>
                   <option value="ollama">Ollama (Local)</option>
@@ -134,13 +159,17 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Model Name</label>
-                <input 
-                  type="text" 
+                <select 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmModel}
-                  placeholder={settings.llmBackend === 'openai' ? 'gpt-4o' : 'llama3'}
                   onChange={(e) => setSettings({ ...settings, llmModel: e.target.value })}
-                />
+                >
+                  {LLM_MODELS[settings.llmBackend].map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

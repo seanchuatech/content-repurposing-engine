@@ -123,23 +123,50 @@ analysis, clipping, and captioning.
 - **[uv](https://github.com/astral-sh/uv)** (recommended for dependency
   management)
 
+## 🤖 LLM Model Management (Ollama)
+
+If you are using the **Ollama** backend, you must manually "pull" (download) the models into the container before they can be used.
+
+### 1. Pulling Models
+Run the following command in your terminal to download a model:
+
+```bash
+# Recommended for Low-Spec / CPU-only devices (Fast)
+docker exec -it content-engine-ollama ollama pull phi3:latest
+
+# Good balance of speed and intelligence
+docker exec -it content-engine-ollama ollama pull mistral
+
+# High intelligence (Slower on CPU, ~4.7GB download)
+docker exec -it content-engine-ollama ollama pull llama3
+```
+
+### 2. Recommended Models by Hardware
+| Hardware Spec | Recommended Model | Ollama Name |
+| :--- | :--- | :--- |
+| **Low (Older i5/i7, no GPU)** | Phi-3 Mini | `phi3:latest` |
+| **Medium (Modern CPU, 16GB+ RAM)** | Mistral 7B | `mistral` |
+| **High (Dedicated GPU / Apple Silicon)** | Llama 3 8B | `llama3` |
+| **Ultra-Light (Extremely Fast)** | Qwen 2 1.5B | `qwen2:1.5b` |
+
+### 3. Verify Installed Models
+To see which models are currently available on your system:
+```bash
+docker exec -it content-engine-ollama ollama list
+```
+
 ## 🚀 How to Run
 
 ### Option 1: Docker (Recommended)
-
-This is the easiest way to run the entire stack with all dependencies
-pre-configured.
 
 1. From the project root:
    ```bash
    docker compose up --build -d worker
    ```
-2. **Required**: Pull the LLM model inside the Ollama container:
-   ```bash
-   docker exec -it content-engine-ollama ollama run llama3 "Ready?"
-   ```
+2. **Required**: Follow the **LLM Model Management** steps above to pull your preferred model.
 
 ### Option 2: Local Development
+...
 
 Use this for faster iteration and debugging.
 
