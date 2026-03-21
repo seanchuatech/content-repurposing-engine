@@ -1,15 +1,11 @@
 import {
   AlertCircle,
-  CheckCircle2,
-  ChevronRight,
   Clock,
   Download,
   Edit2,
   FileVideo,
-  Pause,
   Play,
   RotateCcw,
-  Save,
   Sparkles,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

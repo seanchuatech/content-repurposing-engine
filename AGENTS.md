@@ -27,7 +27,7 @@ When responding or generating code:
 | **Job Queue**        | BullMQ + Redis                               |
 | **Workers**          | Python 3.12+ (Whisper + FFmpeg + LLM)        |
 | **Storage**          | Local filesystem (S3-compatible ready)       |
-| **Database**         | SQLite (dev) / PostgreSQL (prod-ready later) |
+| **Database**         | PostgreSQL                                   |
 | **Containerization** | Docker + Docker Compose                      |
 
 ## 3. TypeScript Conventions (Frontend + Server)
@@ -311,6 +311,7 @@ content-repurposing-engine/
 - **12-Factor App**: Follow [12-Factor principles](https://12factor.net/). Store
   all configuration in environment variables.
 - **Docker Compose**: The default local development setup. Services:
+  - `postgres` — PostgreSQL database.
   - `redis` — Job queue backend.
   - `server` — Bun + Elysia API (optional, can run natively).
   - `worker` — Python worker (optional, can run natively).

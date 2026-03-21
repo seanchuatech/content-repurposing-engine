@@ -22,7 +22,7 @@ graph TD
     %% Define Nodes
     Client["💻 React Frontend"]
     Server["🚀 Bun/Elysia API"]
-    DB["🗄️ SQLite (Drizzle)"]
+    DB["🗄️ PostgreSQL (Drizzle)"]
     Queue["📥 Redis/BullMQ"]
     Worker["⚙️ Python Pipeline"]
     Storage["📂 Shared Storage"]
@@ -95,6 +95,7 @@ Processing a **1-hour video** (~216,000 frames) yields different bottlenecks at 
 ## 🛠️ Tech Stack
 
 *   **Runtime**: [Bun](https://bun.sh/) (Fastest JS runtime for IO-heavy services).
+*   **DB**: [PostgreSQL](https://www.postgresql.org/) (High-performance relational persistence).
 *   **Queue**: [BullMQ / Redis](https://docs.bullmq.io/) (Reliable job persistence).
 *   **Media**: [FFmpeg](https://ffmpeg.org/) (The industry standard for video manipulation).
 *   **AI**: **Groq API** (Transcription) & **Gemini/OpenAI** (Semantic extraction).

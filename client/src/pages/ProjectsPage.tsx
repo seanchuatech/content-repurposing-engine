@@ -78,16 +78,18 @@ export default function ProjectsPage() {
   // Sort the projects array based on criteria
   const sortedProjects = useMemo(() => {
     return [...projects].sort((a, b) => {
-      let aVal: any = a[sortColumn];
-      let bVal: any = b[sortColumn];
+      let aVal: any;
+      let bVal: any;
 
       if (sortColumn === 'durationSeconds') {
         aVal = a.video?.durationSeconds || 0;
         bVal = b.video?.durationSeconds || 0;
-      }
-      if (sortColumn === 'status') {
+      } else if (sortColumn === 'status') {
         aVal = a.job?.status || '';
         bVal = b.job?.status || '';
+      } else {
+        aVal = (a as any)[sortColumn];
+        bVal = (b as any)[sortColumn];
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;

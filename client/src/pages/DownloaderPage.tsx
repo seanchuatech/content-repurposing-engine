@@ -95,7 +95,7 @@ export default function DownloaderPage() {
     );
   };
 
-  const getStatusIcon = (status: string, progress: number) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'PENDING':
         return <Clock className="w-5 h-5 text-yellow-500" />;
@@ -254,7 +254,6 @@ export default function DownloaderPage() {
                         <div className="flex items-center gap-2">
                           {getStatusIcon(
                             download.status,
-                            download.progressPercent,
                           )}
                           <div className="flex flex-col">
                             <span className="font-medium text-zinc-300 capitalize text-xs">

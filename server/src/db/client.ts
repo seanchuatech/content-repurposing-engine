@@ -1,12 +1,9 @@
-import path from 'node:path';
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from './schema';
 
-// For local dev, database is stored in the root directory
-export const dbPath =
-  process.env.DATABASE_URL ||
-  `file:${path.resolve(process.cwd(), '../content-engine.db')}`;
+const connectionString =
+  process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/content_engine';
 
-export const sqliteClient = createClient({ url: dbPath });
-export const db = drizzle(sqliteClient, { schema });
+const client = postgres(connectionString);
+export const db = drizzle(client, { schema });

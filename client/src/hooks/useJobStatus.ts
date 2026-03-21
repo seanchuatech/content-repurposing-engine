@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Job, JobStatus } from '../types/video';
+import type { Job } from '../types/video';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
