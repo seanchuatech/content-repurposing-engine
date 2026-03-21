@@ -97,6 +97,18 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
             explanation: body.explanation,
             filePath: body.storagePath,
           })
+          .onConflictDoUpdate({
+            target: clips.id,
+            set: {
+              startTime: body.startTime,
+              endTime: body.endTime,
+              title: body.title,
+              viralityScore: body.viralityScore,
+              explanation: body.explanation,
+              filePath: body.storagePath,
+              updatedAt: new Date(),
+            }
+          })
           .returning()
           .get();
 
