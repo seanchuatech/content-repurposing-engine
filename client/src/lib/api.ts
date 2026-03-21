@@ -101,3 +101,32 @@ export async function regenerateClip(clipId: string) {
   if (!response.ok) throw new Error('Failed to start regeneration');
   return response.json();
 }
+
+export async function listDownloads() {
+  const response = await fetch(`${API_BASE_URL}/download`);
+  if (!response.ok) throw new Error('Failed to fetch downloads');
+  return response.json();
+}
+
+export async function startDownload(url: string, quality: string) {
+  const response = await fetch(`${API_BASE_URL}/download`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, quality }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to start download');
+  }
+  return response.json();
+}
+
+export async function getDownload(id: string) {
+  const response = await fetch(`${API_BASE_URL}/download/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch download status');
+  return response.json();
+}
+
+export function getDownloadFileUrl(id: string) {
+  return `${API_BASE_URL}/download/${id}/file`;
+}

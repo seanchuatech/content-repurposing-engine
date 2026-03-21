@@ -4,6 +4,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const DownloaderPage = lazy(() => import('./pages/DownloaderPage'));
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const ProjectPage = lazy(() => import('./pages/ProjectPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -23,6 +24,7 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/downloader" element={<DownloaderPage />} />
             <Route path="/projects/:id" element={<ProjectPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/settings" element={<SettingsPage />} />

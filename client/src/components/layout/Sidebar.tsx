@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Upload, Settings, Film, FolderOpen } from 'lucide-react';
+import { LayoutDashboard, Upload, Settings, Film, FolderOpen, Download } from 'lucide-react';
 
 export default function Sidebar() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/projects', icon: FolderOpen, label: 'Projects' },
+    { to: '/downloader', icon: Download, label: 'Downloader' },
     { to: '/upload', icon: Upload, label: 'Upload' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];

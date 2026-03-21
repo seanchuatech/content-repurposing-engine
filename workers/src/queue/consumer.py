@@ -14,6 +14,8 @@ from src.pipeline.reframe import reframe_clip
 from src.pipeline.transcribe import transcribe_video
 from src.pipeline.utils.transcript_parser import parse_transcript_file
 from src.services.youtube_service import download_youtube_video
+from src.models.download_job import DownloadJobPayload
+from src.pipeline.download_handler import process_youtube_download
 
 
 async def update_remote_job_status(job_id: str, status: JobState, progress: int, failed_reason: str = None):
@@ -263,4 +265,13 @@ async def process_video_job(job: Job, token: str):
                 await update_remote_job_status(job_id, JobState.FAILED, 0, failed_reason=str(e))
         except:
             pass
+        raise e
+
+async def process_youtube_download_job(job: Job, token: str):
+    logger.info(f"Received youtube download job {job.id}")
+    try:
+        payload = DownloadJobPayload(**job.data)
+        await process_youtube_download(payload)
+    except Exception as e:
+        logger.error(f"Job {job.id} failed: {str(e)}")
         raise e

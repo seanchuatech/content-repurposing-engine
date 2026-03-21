@@ -70,7 +70,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         const updatedJob = await db
           .update(jobs)
           .set({
-            status: body.status,
+            status: body.status as any,
             progressPercent: body.progressPercent,
             failedReason: body.failedReason,
             updatedAt: new Date(),

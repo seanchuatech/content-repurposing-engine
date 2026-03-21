@@ -8,6 +8,7 @@ import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
 import { settingsRoutes } from './routes/settings';
 import { uploadRoutes } from './routes/upload';
+import { downloadRoutes } from './routes/download';
 
 // Log that we've initialized the events listener
 console.log('📡 Job event listener initialized');
@@ -28,7 +29,7 @@ const app = new Elysia()
 
   // Mount API groups
   .group('/api', (app) =>
-    app.use(projectsRoutes).use(uploadRoutes).use(jobsRoutes).use(settingsRoutes),
+    app.use(projectsRoutes).use(uploadRoutes).use(jobsRoutes).use(settingsRoutes).use(downloadRoutes),
   );
 
 app.listen(process.env.PORT || 3000);

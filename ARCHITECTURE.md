@@ -54,11 +54,13 @@ graph TD
 ### **2. Server (Bun + Elysia)**
 *   **Job Producer**: Dispatches work to background workers via **BullMQ**.
 *   **Data Layer**: Persists metadata (timestamps, scores, states) using **Drizzle ORM**.
+*   **Downloader API**: Serves direct raw YouTube media streams for standalone queries.
 
 ### **3. Workers (Python Engine)**
 *   **Transcription**: Word-level timestamps via **Groq Cloud API** (Whisper Large V3).
 *   **Viral Scoring**: Text-based semantic analysis using **LLMs** (Gemini or OpenAI).
 *   **Visual Polish**: **FFmpeg** for 9:16 reframing and burning captions.
+*   **Standalone Downloader**: Isolated `yt-dlp` background process for pure media ingestion on a separate BullMQ queue (`youtube-download`).
 
 ---
 

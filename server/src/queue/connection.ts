@@ -11,7 +11,21 @@ export const connection = new IORedis(
 
 // Define our main processing queue
 export const videoProcessingQueue = new Queue('video-processing', {
-  connection,
+  connection: connection as any,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+// Define our downloader queue
+export const downloadQueue = new Queue('youtube-download', {
+  connection: connection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

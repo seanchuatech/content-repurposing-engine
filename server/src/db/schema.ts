@@ -103,3 +103,20 @@ export const settings = sqliteTable('settings', {
   exportQuality: text('export_quality').default('high').notNull(), // low, medium, high
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
 });
+
+// 6. Downloads - standalone youtube downloads
+export const downloads = sqliteTable('downloads', {
+  id: text('id').primaryKey(),
+  youtubeUrl: text('youtube_url').notNull(),
+  quality: text('quality').notNull(), // best, 1080p, 720p, audio
+  status: text('status').notNull().default('PENDING'), // PENDING, DOWNLOADING, COMPLETED, FAILED
+  progressPercent: integer('progress_percent').notNull().default(0),
+  filePath: text('file_path'),
+  fileName: text('file_name'),
+  fileSize: integer('file_size'),
+  failedReason: text('failed_reason'),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .default(sql`(strftime('%s', 'now'))`)
+    .notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});

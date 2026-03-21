@@ -4,12 +4,12 @@ from bullmq import Worker
 
 from src.logger import logger
 from src.config import config
-from src.queue.consumer import process_video_job
-
+from src.queue.consumer import process_video_job, process_youtube_download_job
 
 async def main():
-    logger.info("Initializing Content Repurposing Engine Worker...")
-    worker = None
+    logger.info("Initializing Content Repurposing Engine Workers...")
+    video_worker = None
+    download_worker = None
     try:
         logger.info("Connecting to 'video-processing' queue...")
         
@@ -19,7 +19,7 @@ async def main():
             "port": config.REDIS_PORT,
         }
 
-        worker = Worker(
+        video_worker = Worker(
             "video-processing", 
             process_video_job, 
             {
@@ -27,7 +27,15 @@ async def main():
                 "lockDuration": 300000, # 5 minutes
             }
         )
-        logger.info(f"Worker listening on queue: {worker.name}")
+        download_worker = Worker(
+            "youtube-download", 
+            process_youtube_download_job, 
+            {
+                "connection": redis_opts,
+                "lockDuration": 300000, 
+            }
+        )
+        logger.info(f"Workers listening on queues: {video_worker.name}, {download_worker.name}")
 
         # Keep the main thread alive
         while True:
@@ -38,11 +46,12 @@ async def main():
     except Exception:
         logger.exception("Worker encountered a fatal error:")
     finally:
-        if worker:
-            logger.info("Closing worker connections...")
-            # We don't necessarily need to close here as the process will exit, 
-            # but it's good practice if bullmq-python supports it.
-            # worker.close() 
+        if video_worker:
+            logger.info("Closing video worker connection...")
+            # await video_worker.close()
+        if download_worker:
+            logger.info("Closing download worker connection...")
+            # await download_worker.close()
         logger.info("Worker process exiting.")
 
 

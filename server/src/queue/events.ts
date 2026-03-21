@@ -11,7 +11,7 @@ const eventConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:
 });
 
 export const videoProcessingEvents = new QueueEvents('video-processing', {
-  connection: eventConnection,
+  connection: eventConnection as any,
 });
 
 videoProcessingEvents.on('progress', async ({ jobId, data }) => {
