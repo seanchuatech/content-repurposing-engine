@@ -1,10 +1,26 @@
-import { useState, useEffect, useMemo } from 'react';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Eye,
+  Loader2,
+  Plus,
+  Trash2,
+  Video,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Video, Clock, ChevronUp, ChevronDown, CheckCircle, AlertCircle, Loader2, Trash2, Eye } from 'lucide-react';
-import { getProjects, deleteProject } from '../lib/api';
+import { deleteProject, getProjects } from '../lib/api';
 import type { ProjectWithDetails } from '../types/video';
 
-type SortColumn = 'title' | 'createdAt' | 'durationSeconds' | 'clipCount' | 'status';
+type SortColumn =
+  | 'title'
+  | 'createdAt'
+  | 'durationSeconds'
+  | 'clipCount'
+  | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export default function ProjectsPage() {
@@ -18,7 +34,8 @@ export default function ProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [projectToDelete, setProjectToDelete] = useState<ProjectWithDetails | null>(null);
+  const [projectToDelete, setProjectToDelete] =
+    useState<ProjectWithDetails | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -47,8 +64,15 @@ export default function ProjectsPage() {
   };
 
   const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return <ChevronDown className="w-4 h-4 text-zinc-700 opacity-0 group-hover:opacity-100" />;
-    return sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-indigo-400" />;
+    if (sortColumn !== column)
+      return (
+        <ChevronDown className="w-4 h-4 text-zinc-700 opacity-0 group-hover:opacity-100" />
+      );
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="w-4 h-4 text-indigo-400" />
+    ) : (
+      <ChevronDown className="w-4 h-4 text-indigo-400" />
+    );
   };
 
   // Sort the projects array based on criteria
@@ -76,7 +100,7 @@ export default function ProjectsPage() {
   const totalPages = Math.ceil(sortedProjects.length / itemsPerPage);
   const paginatedProjects = sortedProjects.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const formatDuration = (seconds?: number | null) => {
@@ -90,7 +114,8 @@ export default function ProjectsPage() {
     if (!mimeType) return 'Unknown';
     if (mimeType.includes('youtube')) return 'YouTube';
     if (mimeType.includes('mp4')) return 'MP4';
-    if (mimeType.includes('quicktime') || mimeType.includes('mov')) return 'MOV';
+    if (mimeType.includes('quicktime') || mimeType.includes('mov'))
+      return 'MOV';
     return mimeType.split('/')[1]?.toUpperCase() || 'Unknown';
   };
 
@@ -107,10 +132,12 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Projects</h1>
-          <p className="text-zinc-400">Manage your generated content and pipeline results.</p>
+          <p className="text-zinc-400">
+            Manage your generated content and pipeline results.
+          </p>
         </div>
-        <Link 
-          to="/upload" 
+        <Link
+          to="/upload"
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -129,12 +156,14 @@ export default function ProjectsPage() {
           <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-4">
             <Video className="w-8 h-8 text-zinc-500" />
           </div>
-          <h3 className="text-xl font-medium text-zinc-300 mb-2">No projects yet</h3>
+          <h3 className="text-xl font-medium text-zinc-300 mb-2">
+            No projects yet
+          </h3>
           <p className="text-zinc-500 mb-8 max-w-sm mx-auto">
             Upload your first video to start generating viral clips with AI.
           </p>
-          <Link 
-            to="/upload" 
+          <Link
+            to="/upload"
             className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
           >
             Upload your first video
@@ -146,44 +175,57 @@ export default function ProjectsPage() {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-zinc-900 text-zinc-400 border-b border-zinc-800 uppercase text-xs font-semibold tracking-wider">
                 <tr>
-                  <th 
+                  <th
                     className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
                     onClick={() => toggleSort('title')}
                   >
-                    <div className="flex items-center gap-1">Project <SortIcon column="title" /></div>
+                    <div className="flex items-center gap-1">
+                      Project <SortIcon column="title" />
+                    </div>
                   </th>
                   <th className="px-6 py-4">Format</th>
-                  <th 
+                  <th
                     className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
                     onClick={() => toggleSort('durationSeconds')}
                   >
-                    <div className="flex items-center gap-1">Duration <SortIcon column="durationSeconds" /></div>
+                    <div className="flex items-center gap-1">
+                      Duration <SortIcon column="durationSeconds" />
+                    </div>
                   </th>
                   <th className="px-6 py-4">AI Metadata</th>
-                  <th 
+                  <th
                     className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
                     onClick={() => toggleSort('status')}
                   >
-                    <div className="flex items-center gap-1">Status <SortIcon column="status" /></div>
+                    <div className="flex items-center gap-1">
+                      Status <SortIcon column="status" />
+                    </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
                     onClick={() => toggleSort('clipCount')}
                   >
-                    <div className="flex items-center gap-1">Clips <SortIcon column="clipCount" /></div>
+                    <div className="flex items-center gap-1">
+                      Clips <SortIcon column="clipCount" />
+                    </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
                     onClick={() => toggleSort('createdAt')}
                   >
-                    <div className="flex items-center gap-1">Date Created <SortIcon column="createdAt" /></div>
+                    <div className="flex items-center gap-1">
+                      Date Created <SortIcon column="createdAt" />
+                    </div>
                   </th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
                 {paginatedProjects.map((project) => (
-                  <tr key={project.id} className="hover:bg-zinc-800/30 transition-colors group">
+                  <tr
+                    key={project.id}
+                    className="hover:bg-zinc-800/30 transition-colors group"
+                  >
                     {/* Title */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -194,7 +236,10 @@ export default function ProjectsPage() {
                           <p className="font-medium text-zinc-100 truncate group-hover:text-indigo-400 transition-colors">
                             {project.title}
                           </p>
-                          <p className="text-xs text-zinc-500 truncate" title={project.video?.originalName || ''}>
+                          <p
+                            className="text-xs text-zinc-500 truncate"
+                            title={project.video?.originalName || ''}
+                          >
                             {project.video?.originalName || 'No source file'}
                           </p>
                         </div>
@@ -219,11 +264,24 @@ export default function ProjectsPage() {
                     {/* AI Metadata Overview */}
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-xs text-zinc-400 truncate max-w-[150px]" title={project.job?.transcriptionBackend || 'None'}>
-                          🗣 {project.job?.transcriptionBackend === 'groq' ? `Groq (${project.job?.whisperModel})` : (project.job?.transcriptionBackend || 'None')}
+                        <span
+                          className="text-xs text-zinc-400 truncate max-w-[150px]"
+                          title={project.job?.transcriptionBackend || 'None'}
+                        >
+                          🗣{' '}
+                          {project.job?.transcriptionBackend === 'groq'
+                            ? `Groq (${project.job?.whisperModel})`
+                            : project.job?.transcriptionBackend || 'None'}
                         </span>
-                        <span className="text-xs text-zinc-400 truncate max-w-[150px]" title={project.job?.llmModel || 'None'}>
-                          🧠 {project.job?.llmBackend === 'openai' ? 'OpenAI' : project.job?.llmBackend} ({project.job?.llmModel})
+                        <span
+                          className="text-xs text-zinc-400 truncate max-w-[150px]"
+                          title={project.job?.llmModel || 'None'}
+                        >
+                          🧠{' '}
+                          {project.job?.llmBackend === 'openai'
+                            ? 'OpenAI'
+                            : project.job?.llmBackend}{' '}
+                          ({project.job?.llmModel})
                         </span>
                       </div>
                     </td>
@@ -256,8 +314,15 @@ export default function ProjectsPage() {
                     {/* Date */}
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-zinc-300">{new Date(project.createdAt).toLocaleDateString()}</span>
-                        <span className="text-xs text-zinc-500">{new Date(project.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-zinc-300">
+                          {new Date(project.createdAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {new Date(project.createdAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
                     </td>
 
@@ -290,11 +355,13 @@ export default function ProjectsPage() {
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-zinc-800 flex items-center justify-between bg-zinc-900/40">
               <span className="text-sm text-zinc-500">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, projects.length)} of {projects.length}
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                {Math.min(currentPage * itemsPerPage, projects.length)} of{' '}
+                {projects.length}
               </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-sm text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -306,9 +373,9 @@ export default function ProjectsPage() {
                       key={i}
                       onClick={() => setCurrentPage(i + 1)}
                       className={`w-8 h-8 rounded-md flex items-center justify-center text-sm transition-colors ${
-                        currentPage === i + 1 
-                        ? 'bg-indigo-600 text-white font-medium' 
-                        : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                        currentPage === i + 1
+                          ? 'bg-indigo-600 text-white font-medium'
+                          : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                       }`}
                     >
                       {i + 1}
@@ -316,7 +383,9 @@ export default function ProjectsPage() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-sm text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -332,11 +401,16 @@ export default function ProjectsPage() {
       {projectToDelete && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-2">Delete Project</h3>
+            <h3 className="text-xl font-bold text-white mb-2">
+              Delete Project
+            </h3>
             <p className="text-zinc-400 mb-6">
-              Are you sure you want to delete <span className="text-zinc-200 font-medium">"{projectToDelete.title}"</span>? 
-              This will permanently remove all associated videos, extracted clips, and processing data.
-              This action cannot be undone.
+              Are you sure you want to delete{' '}
+              <span className="text-zinc-200 font-medium">
+                "{projectToDelete.title}"
+              </span>
+              ? This will permanently remove all associated videos, extracted
+              clips, and processing data. This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -351,7 +425,9 @@ export default function ProjectsPage() {
                   setIsDeleting(true);
                   try {
                     await deleteProject(projectToDelete.id);
-                    setProjects(p => p.filter(x => x.id !== projectToDelete.id));
+                    setProjects((p) =>
+                      p.filter((x) => x.id !== projectToDelete.id),
+                    );
                     setProjectToDelete(null);
                   } catch (e) {
                     setError('Failed to delete project');
@@ -362,7 +438,11 @@ export default function ProjectsPage() {
                 disabled={isDeleting}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
               >
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
                 {isDeleting ? 'Deleting...' : 'Delete Project'}
               </button>
             </div>

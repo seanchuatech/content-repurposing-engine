@@ -80,68 +80,68 @@ content-repurposing-engine/
 ├── client/                          # React + Vite frontend
 │   ├── public/                      # Static assets
 │   ├── src/
+│   │   ├── assets/                  # Static imports (images, SVGs)
 │   │   ├── components/              # Reusable UI components
 │   │   │   ├── ui/                  # Primitives (Button, Dialog, etc.)
-│   │   │   ├── layout/              # App shell (Sidebar, Header, etc.)
-│   │   │   ├── video/               # Video player, timeline, clip preview
-│   │   │   └── common/              # StatusBadge, ProgressBar, etc.
+│   │   │   └── layout/              # App shell components
+│   │   │       ├── DashboardLayout.tsx
+│   │   │       ├── Header.tsx
+│   │   │       └── Sidebar.tsx
 │   │   ├── pages/                   # One file per route
-│   │   │   ├── UploadPage.tsx       # Video upload + YouTube URL import
-│   │   │   ├── ProjectPage.tsx      # Single project: clips, timeline, editor
 │   │   │   ├── DashboardPage.tsx    # Project list + stats
-│   │   │   └── SettingsPage.tsx     # User preferences, API keys
+│   │   │   ├── DownloaderPage.tsx   # YouTube download UI
+│   │   │   ├── ProjectPage.tsx      # Single project: clips, timeline
+│   │   │   ├── ProjectsPage.tsx     # All projects list view
+│   │   │   ├── SettingsPage.tsx     # User preferences, API keys
+│   │   │   └── UploadPage.tsx       # Video upload + YouTube URL import
 │   │   ├── hooks/                   # Custom React hooks
-│   │   │   ├── useJobStatus.ts      # Polling/SSE for job progress
-│   │   │   ├── useApi.ts            # API query hooks
-│   │   │   └── useVideoPlayer.ts    # Video playback controls
+│   │   │   └── useJobStatus.ts      # Polling/SSE for job progress
 │   │   ├── lib/                     # Core utilities
-│   │   │   ├── api.ts               # Typed fetch wrapper + error handling
-│   │   │   ├── constants.ts         # App-wide constants
-│   │   │   └── utils.ts             # Formatting, time helpers
+│   │   │   └── api.ts               # Typed fetch wrapper + error handling
 │   │   ├── types/                   # TypeScript type definitions
-│   │   │   ├── video.ts             # Video, Project types
-│   │   │   ├── clip.ts              # Clip, Segment types
-│   │   │   ├── job.ts               # Job status, progress types
-│   │   │   └── api.ts               # API request/response types
+│   │   │   └── video.ts             # Video, Project types
 │   │   ├── App.tsx                  # Root component + router
+│   │   ├── App.css                  # App-level styles
 │   │   ├── main.tsx                 # Vite entry point
 │   │   └── index.css                # Tailwind directives + global styles
+│   ├── eslint.config.js
+│   ├── index.html
 │   ├── package.json
-│   ├── tailwind.config.ts
+│   ├── postcss.config.js
 │   ├── tsconfig.json
-│   └── vite.config.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.node.json
+│   ├── vite.config.ts
+│   └── Dockerfile
 │
 ├── server/                          # Bun + Elysia API server
 │   ├── src/
 │   │   ├── routes/                  # Elysia route modules
-│   │   │   ├── upload.ts            # File upload + YouTube URL ingestion
-│   │   │   ├── projects.ts          # CRUD for video projects
-│   │   │   ├── clips.ts             # Clip retrieval, editing, export
+│   │   │   ├── download.ts          # YouTube download initiation + file serving
 │   │   │   ├── jobs.ts              # Job status + progress (SSE)
-│   │   │   └── health.ts            # /healthz, /readyz
-│   │   ├── services/                # Business logic
-│   │   │   ├── upload-service.ts    # File validation, storage, job dispatch
-│   │   │   ├── project-service.ts   # Project lifecycle management
-│   │   │   └── clip-service.ts      # Clip metadata + export logic
+│   │   │   ├── projects.ts          # CRUD for video projects
+│   │   │   ├── settings.ts          # User settings endpoints
+│   │   │   └── upload.ts            # File upload + YouTube URL ingestion
+│   │   ├── services/                # Business logic (placeholder)
 │   │   ├── queue/                   # BullMQ job definitions
 │   │   │   ├── connection.ts        # Redis connection for BullMQ
-│   │   │   ├── producers.ts         # Job creation helpers
-│   │   │   └── types.ts             # Job payload type definitions
+│   │   │   ├── events.ts            # BullMQ event listeners
+│   │   │   └── producers.ts         # Job creation helpers
 │   │   ├── db/                      # Database layer
 │   │   │   ├── schema.ts            # Drizzle ORM schema definitions
 │   │   │   ├── client.ts            # DB client setup
-│   │   │   └── migrations/          # SQL migrations
+│   │   │   └── migrations/          # SQL migrations (Drizzle Kit)
 │   │   ├── middleware/              # Elysia plugins/middleware
 │   │   │   ├── error-handler.ts     # Global error handling
-│   │   │   ├── logger.ts            # Request/response logging
-│   │   │   └── cors.ts              # CORS configuration
-│   │   ├── lib/                     # Shared utilities
-│   │   │   ├── config.ts            # Environment variable parsing
-│   │   │   ├── storage.ts           # File storage abstraction (local/S3)
-│   │   │   └── validators.ts        # Input validation schemas (Typebox)
+│   │   │   └── logger.ts            # Request/response logging
+│   │   ├── lib/                     # Shared utilities (placeholder)
+│   │   ├── types/                   # Server-side type definitions (placeholder)
 │   │   └── index.ts                 # Entry point — wires deps, starts server
+│   ├── drizzle.config.ts            # Drizzle Kit migration config
+│   ├── index.ts                     # Re-export / alt entry point
 │   ├── package.json
-│   └── tsconfig.json
+│   ├── tsconfig.json
+│   └── Dockerfile
 │
 ├── workers/                         # Python processing pipeline
 │   ├── src/
@@ -150,36 +150,54 @@ content-repurposing-engine/
 │   │   │   ├── analyze.py           # LLM-based viral moment scoring
 │   │   │   ├── clip.py              # FFmpeg clip extraction
 │   │   │   ├── caption.py           # Subtitle generation + burn-in
-│   │   │   └── reframe.py           # Aspect ratio conversion (9:16)
+│   │   │   ├── reframe.py           # Aspect ratio conversion (9:16)
+│   │   │   ├── download_handler.py  # YouTube download via yt-dlp
+│   │   │   └── utils/               # Pipeline utilities
+│   │   │       └── transcript_parser.py
 │   │   ├── models/                  # Data models (Pydantic)
 │   │   │   ├── segment.py           # Transcript segment model
 │   │   │   ├── clip.py              # Clip definition model
+│   │   │   ├── download_job.py      # Download job payload model
 │   │   │   └── job.py               # Job payload model
 │   │   ├── services/                # External service integrations
 │   │   │   ├── whisper_service.py   # Whisper model management
 │   │   │   ├── llm_service.py       # LLM client (Ollama / OpenAI)
-│   │   │   └── ffmpeg_service.py    # FFmpeg command builder
+│   │   │   ├── ffmpeg_service.py    # FFmpeg command builder
+│   │   │   └── youtube_service.py   # yt-dlp wrapper for downloads
 │   │   ├── queue/                   # Job queue consumer
 │   │   │   ├── consumer.py          # BullMQ-compatible job listener
-│   │   │   └── callbacks.py         # Progress reporting back to server
+│   │   │   └── connection.py        # Redis connection setup
 │   │   ├── config.py                # Environment-based configuration
 │   │   ├── logger.py                # Structured logging setup
 │   │   └── main.py                  # Worker entry point
-│   ├── tests/                       # pytest test suite
-│   │   ├── test_transcribe.py
-│   │   ├── test_analyze.py
-│   │   └── test_clip.py
-│   └── pyproject.toml               # uv / pip dependencies
+│   ├── tests/                       # Manual test suite
+│   │   ├── test_analysis_manual.py
+│   │   ├── test_caption_manual.py
+│   │   ├── test_clip_manual.py
+│   │   └── test_reframe_manual.py
+│   ├── pyproject.toml               # uv / pip dependencies
+│   ├── ruff.toml                    # Ruff linter config
+│   └── Dockerfile
+│
+├── packages/                        # Shared packages
+│   └── shared-types/                # Shared TypeScript types
+│       └── index.ts
 │
 ├── storage/                         # Local file storage (gitignored)
 │   ├── uploads/                     # Raw uploaded videos
 │   ├── clips/                       # Generated clip outputs
+│   ├── downloads/                   # YouTube downloaded files
 │   └── temp/                        # Intermediate processing files
 │
 ├── docker-compose.yml               # Redis + optional services
+├── dev.sh                           # Local dev startup script
+├── package.json                     # Root workspace package.json
+├── biome.json                       # Biome config (root-level)
 ├── .env.example                     # Environment variable template
 ├── .gitignore
 ├── GEMINI.md                        # This file — agent instructions
+├── ARCHITECTURE.md                  # High-level architecture overview
+├── PIPELINE.md                      # Processing pipeline documentation
 └── README.md
 ```
 
@@ -211,8 +229,8 @@ content-repurposing-engine/
 ## 6. Frontend Conventions
 
 - **Stack**: React 18 + Vite + TypeScript + Tailwind CSS.
-- **Component Library**: Use Shadcn/ui for base components. Customize with
-  Tailwind for project-specific styling.
+- **Component Library**: Build custom components in `components/ui/` and
+  `components/layout/`. Customize with Tailwind for project-specific styling.
 - **Routing**: React Router v6 with lazy-loaded routes.
 - **State Management**: React Context for global state (auth, theme). Local
   state with `useState`/`useReducer` for component-level state. Avoid external
@@ -266,6 +284,10 @@ content-repurposing-engine/
   4. **Caption** — Generate and burn in subtitles (SRT → hardcoded).
   5. **Reframe** — Convert to 9:16 portrait using "Smart Crop" (FFmpeg
      motion/saliency tracking, avoiding heavy external ML models).
+- **YouTube Download Pipeline**: A separate job type handled by
+  `download_handler.py` using `yt-dlp` via `youtube_service.py`. Downloads are
+  stored in `storage/downloads/`. This pipeline is independent of the
+  content-repurposing stages above.
 - **Hardware Awareness**: Workers MUST support explicit device selection (`cpu`,
   `cuda`, `mps`) via environment variables to prevent crashes on GPU-less
   instances or failing to utilize available GPUs.

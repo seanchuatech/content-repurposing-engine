@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Job, JobStatus } from '../types/video';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export function useJobStatus(jobId: string | undefined) {
   const [job, setJob] = useState<Partial<Job> | null>(null);

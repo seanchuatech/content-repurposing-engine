@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Download, 
-  Link as LinkIcon, 
-  Loader2, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
   Activity,
+  CheckCircle2,
+  Clock,
+  Download,
   FileAudio,
-  Film
+  Film,
+  Link as LinkIcon,
+  Loader2,
+  XCircle,
 } from 'lucide-react';
-import { startDownload, listDownloads, getDownloadFileUrl } from '../lib/api';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { getDownloadFileUrl, listDownloads, startDownload } from '../lib/api';
 
 type DownloadRecord = {
   id: string;
@@ -37,10 +38,11 @@ export default function DownloaderPage() {
     try {
       const data = await listDownloads();
       setDownloads(data);
-      
+
       // Check if any downloads are active to trigger polling
-      const hasActive = data.some((d: DownloadRecord) => 
-        d.status === 'PENDING' || d.status === 'DOWNLOADING'
+      const hasActive = data.some(
+        (d: DownloadRecord) =>
+          d.status === 'PENDING' || d.status === 'DOWNLOADING',
       );
       setIsPolling(hasActive);
     } catch (err) {
@@ -88,7 +90,9 @@ export default function DownloaderPage() {
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    );
   };
 
   const getStatusIcon = (status: string, progress: number) => {
@@ -108,7 +112,6 @@ export default function DownloaderPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 outline-none pb-20">
-      
       {/* Header Section */}
       <div className="flex justify-between items-start">
         <div>
@@ -116,22 +119,27 @@ export default function DownloaderPage() {
             YouTube Downloader
           </h1>
           <p className="text-zinc-400 mt-2 text-lg">
-            Download raw videos or audio straight from YouTube. Fast and unrestricted.
+            Download raw videos or audio straight from YouTube. Fast and
+            unrestricted.
           </p>
         </div>
       </div>
 
       {/* Input Card */}
-      <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl relative overflow-hidden"
+      >
         {/* Decorative background glow */}
         <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
-        
+
         <div className="relative space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
-            
             {/* URL Input */}
             <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium text-zinc-300 ml-1">YouTube URL</label>
+              <label className="text-sm font-medium text-zinc-300 ml-1">
+                YouTube URL
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <LinkIcon className="h-5 w-5 text-zinc-500" />
@@ -149,7 +157,9 @@ export default function DownloaderPage() {
 
             {/* Quality Selector */}
             <div className="w-full md:w-64 space-y-2">
-              <label className="text-sm font-medium text-zinc-300 ml-1">Format Quality</label>
+              <label className="text-sm font-medium text-zinc-300 ml-1">
+                Format Quality
+              </label>
               <div className="relative">
                 <select
                   value={quality}
@@ -200,8 +210,10 @@ export default function DownloaderPage() {
       {/* History Section */}
       {downloads.length > 0 && (
         <div className="space-y-4 pt-6">
-          <h2 className="text-xl font-semibold text-zinc-100">Download History</h2>
-          
+          <h2 className="text-xl font-semibold text-zinc-100">
+            Download History
+          </h2>
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-zinc-400">
@@ -216,15 +228,21 @@ export default function DownloaderPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-800/50">
                   {downloads.map((download) => (
-                    <tr key={download.id} className="hover:bg-zinc-800/30 transition-colors group">
+                    <tr
+                      key={download.id}
+                      className="hover:bg-zinc-800/30 transition-colors group"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-medium text-zinc-200 truncate max-w-[300px]" title={download.fileName || download.youtubeUrl}>
-                            {download.fileName || "Fetching metadata..."}
+                          <span
+                            className="font-medium text-zinc-200 truncate max-w-[300px]"
+                            title={download.fileName || download.youtubeUrl}
+                          >
+                            {download.fileName || 'Fetching metadata...'}
                           </span>
-                          <a 
-                            href={download.youtubeUrl} 
-                            target="_blank" 
+                          <a
+                            href={download.youtubeUrl}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-indigo-400 hover:text-indigo-300 truncate max-w-[300px] mt-1"
                           >
@@ -234,21 +252,29 @@ export default function DownloaderPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(download.status, download.progressPercent)}
+                          {getStatusIcon(
+                            download.status,
+                            download.progressPercent,
+                          )}
                           <div className="flex flex-col">
                             <span className="font-medium text-zinc-300 capitalize text-xs">
                               {download.status.toLowerCase()}
                             </span>
-                            {(download.status === 'DOWNLOADING') && (
+                            {download.status === 'DOWNLOADING' && (
                               <div className="w-24 h-1.5 bg-zinc-800 rounded-full mt-1.5 overflow-hidden">
-                                <div 
+                                <div
                                   className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                                  style={{ width: `${download.progressPercent}%` }}
+                                  style={{
+                                    width: `${download.progressPercent}%`,
+                                  }}
                                 />
                               </div>
                             )}
                             {download.status === 'FAILED' && (
-                              <span className="text-xs text-red-400/80 mt-1 max-w-[200px] truncate" title={download.failedReason || 'Unknown error'}>
+                              <span
+                                className="text-xs text-red-400/80 mt-1 max-w-[200px] truncate"
+                                title={download.failedReason || 'Unknown error'}
+                              >
                                 {download.failedReason}
                               </span>
                             )}
@@ -257,8 +283,14 @@ export default function DownloaderPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 text-zinc-300 bg-zinc-800/50 w-fit px-2 py-1 rounded text-xs font-medium">
-                          {download.quality === 'audio' ? <FileAudio className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
-                          {download.quality === 'audio' ? 'Audio' : download.quality}
+                          {download.quality === 'audio' ? (
+                            <FileAudio className="w-3.5 h-3.5" />
+                          ) : (
+                            <Film className="w-3.5 h-3.5" />
+                          )}
+                          {download.quality === 'audio'
+                            ? 'Audio'
+                            : download.quality}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -278,7 +310,10 @@ export default function DownloaderPage() {
                           </a>
                         ) : download.status === 'FAILED' ? (
                           <button
-                            onClick={() => { setUrl(download.youtubeUrl); setQuality(download.quality); }}
+                            onClick={() => {
+                              setUrl(download.youtubeUrl);
+                              setQuality(download.quality);
+                            }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800/50 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors border border-transparent hover:border-zinc-600"
                           >
                             Retry

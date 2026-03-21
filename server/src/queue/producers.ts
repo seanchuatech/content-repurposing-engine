@@ -1,4 +1,4 @@
-import { videoProcessingQueue, downloadQueue } from './connection';
+import { downloadQueue, videoProcessingQueue } from './connection';
 
 export type VideoProcessingJobPayload = {
   jobId: string;

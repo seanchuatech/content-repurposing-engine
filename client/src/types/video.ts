@@ -46,7 +46,15 @@ export interface Clip {
   createdAt: string;
 }
 
-export type JobStatus = 'PENDING' | 'TRANSCRIBING' | 'ANALYZING' | 'CLIPPING' | 'CAPTIONING' | 'REFRAMING' | 'COMPLETED' | 'FAILED';
+export type JobStatus =
+  | 'PENDING'
+  | 'TRANSCRIBING'
+  | 'ANALYZING'
+  | 'CLIPPING'
+  | 'CAPTIONING'
+  | 'REFRAMING'
+  | 'COMPLETED'
+  | 'FAILED';
 
 export interface Job {
   id: string;

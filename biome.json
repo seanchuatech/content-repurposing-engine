@@ -21,5 +21,11 @@
       "quoteStyle": "single",
       "semicolons": "always"
     }
+  },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
+    }
   }
 }

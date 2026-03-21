@@ -2,10 +2,7 @@
   "name": "content-repurposing-engine",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ],
+  "workspaces": ["client", "server"],
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "npm --workspace client run dev",

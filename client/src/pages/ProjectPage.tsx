@@ -1,22 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { 
-  Play, 
-  Pause, 
-  Download, 
-  Clock, 
-  Sparkles, 
-  AlertCircle, 
+import {
+  AlertCircle,
   CheckCircle2,
-  FileVideo,
   ChevronRight,
+  Clock,
+  Download,
   Edit2,
+  FileVideo,
+  Pause,
+  Play,
+  RotateCcw,
   Save,
-  RotateCcw
+  Sparkles,
 } from 'lucide-react';
-import { getProject, getJobByProject, getJob, updateClip, regenerateClip } from '../lib/api';
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useJobStatus } from '../hooks/useJobStatus';
-import type { Project, Clip, Job } from '../types/video';
+import {
+  getJob,
+  getJobByProject,
+  getProject,
+  regenerateClip,
+  updateClip,
+} from '../lib/api';
+import type { Clip, Job, Project } from '../types/video';
 
 const STORAGE_BASE_URL = 'http://localhost:3000';
 
@@ -28,15 +34,15 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
-  
+
   // Editor State
   const [isEditing, setIsEditing] = useState(false);
   const [editStart, setEditStart] = useState(0);
   const [editEnd, setEditEnd] = useState(0);
   const [editTitle, setEditTitle] = useState('');
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  
+
   const { job: liveJob } = useJobStatus(currentJob?.id);
 
   useEffect(() => {
@@ -45,7 +51,7 @@ export default function ProjectPage() {
       try {
         const projectData = await getProject(id);
         setProject(projectData);
-        
+
         const jobData = await getJobByProject(id);
         setCurrentJob(jobData);
         if (jobData.clips) {
@@ -63,12 +69,14 @@ export default function ProjectPage() {
 
   useEffect(() => {
     if (liveJob?.status === 'COMPLETED' && currentJob?.id) {
-      getJob(currentJob.id).then(data => {
+      getJob(currentJob.id).then((data) => {
         if (data.clips) {
           setClips(data.clips);
           // If the currently active clip was regenerated, update its path
           if (activeClip) {
-            const updated = data.clips.find((c: Clip) => c.id === activeClip.id);
+            const updated = data.clips.find(
+              (c: Clip) => c.id === activeClip.id,
+            );
             if (updated) setActiveClip(updated);
           }
         }
@@ -100,12 +108,12 @@ export default function ProjectPage() {
       await updateClip(activeClip.id, {
         startTime: editStart,
         endTime: editEnd,
-        title: editTitle
+        title: editTitle,
       });
-      
+
       // 2. Trigger worker regeneration
       const { jobId } = await regenerateClip(activeClip.id);
-      
+
       // 3. Switch to tracking the new job
       setCurrentJob({ id: jobId } as Job);
       setIsEditing(false);
@@ -132,16 +140,24 @@ export default function ProjectPage() {
   }
 
   const currentStatus = liveJob?.status || currentJob?.status || 'PENDING';
-  const currentProgress = liveJob?.progressPercent ?? currentJob?.progressPercent ?? 0;
+  const currentProgress =
+    liveJob?.progressPercent ?? currentJob?.progressPercent ?? 0;
 
   return (
     <div className="space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{project.title}</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {project.title}
+          </h1>
           <div className="flex items-center gap-4 text-sm text-zinc-500">
-            <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {new Date(project.createdAt).toLocaleDateString()}</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">{clips.length} Clips Generated</span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />{' '}
+              {new Date(project.createdAt).toLocaleDateString()}
+            </span>
+            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+              {clips.length} Clips Generated
+            </span>
           </div>
         </div>
       </div>
@@ -151,13 +167,17 @@ export default function ProjectPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3 text-indigo-400">
               <Sparkles className="w-5 h-5 animate-pulse" />
-              <span className="font-bold uppercase tracking-wider text-sm">{currentStatus}...</span>
+              <span className="font-bold uppercase tracking-wider text-sm">
+                {currentStatus}...
+              </span>
             </div>
-            <span className="text-indigo-400 font-mono font-bold">{currentProgress}%</span>
+            <span className="text-indigo-400 font-mono font-bold">
+              {currentProgress}%
+            </span>
           </div>
           <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-500 transition-all duration-500 ease-out" 
+            <div
+              className="h-full bg-indigo-500 transition-all duration-500 ease-out"
               style={{ width: `${currentProgress}%` }}
             />
           </div>
@@ -171,9 +191,9 @@ export default function ProjectPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl relative group">
             {activeClip ? (
-              <video 
+              <video
                 ref={videoRef}
-                controls 
+                controls
                 className="w-full h-full object-contain"
                 poster={`${STORAGE_BASE_URL}/storage/temp/${activeClip.jobId}/thumbnail.jpg`}
               />
@@ -184,12 +204,14 @@ export default function ProjectPage() {
               </div>
             )}
           </div>
-          
+
           {activeClip && !isEditing && (
             <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-xl">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">{activeClip.title}</h2>
-                <button 
+                <h2 className="text-xl font-bold text-white">
+                  {activeClip.title}
+                </h2>
+                <button
                   onClick={startEditing}
                   className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-bold border border-zinc-700 transition-colors"
                 >
@@ -201,7 +223,7 @@ export default function ProjectPage() {
                 {activeClip.explanation}
               </p>
               <div className="flex gap-3">
-                <a 
+                <a
                   href={`${STORAGE_BASE_URL}/${activeClip.filePath}`}
                   download
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-lg font-bold transition-colors"
@@ -220,7 +242,7 @@ export default function ProjectPage() {
                   <Edit2 className="w-5 h-5 text-indigo-400" />
                   Edit Clip
                 </h2>
-                <button 
+                <button
                   onClick={() => setIsEditing(false)}
                   className="text-zinc-500 hover:text-white text-sm"
                 >
@@ -230,33 +252,43 @@ export default function ProjectPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Title</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Start Time (s)</label>
-                    <input 
-                      type="number" 
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                      Start Time (s)
+                    </label>
+                    <input
+                      type="number"
                       step="0.1"
                       value={editStart}
-                      onChange={(e) => setEditStart(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        setEditStart(Number.parseFloat(e.target.value))
+                      }
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">End Time (s)</label>
-                    <input 
-                      type="number" 
+                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                      End Time (s)
+                    </label>
+                    <input
+                      type="number"
                       step="0.1"
                       value={editEnd}
-                      onChange={(e) => setEditEnd(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        setEditEnd(Number.parseFloat(e.target.value))
+                      }
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:border-indigo-500 outline-none"
                     />
                   </div>
@@ -264,7 +296,7 @@ export default function ProjectPage() {
               </div>
 
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   onClick={handleRegenerate}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20 transition-all"
                 >
@@ -286,7 +318,7 @@ export default function ProjectPage() {
               </span>
             )}
           </h2>
-          
+
           {clips.length === 0 ? (
             <div className="py-12 text-center bg-zinc-900/20 border border-zinc-800 border-dashed rounded-xl px-6">
               <Sparkles className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
@@ -309,16 +341,21 @@ export default function ProjectPage() {
                   <div className="flex items-start gap-4">
                     <div className="relative w-20 aspect-[9/16] bg-zinc-800 rounded-lg overflow-hidden flex-shrink-0 border border-zinc-700 group-hover:border-zinc-600 transition-colors">
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Play className={`w-6 h-6 transition-transform ${activeClip?.id === clip.id ? 'text-indigo-400 scale-110' : 'text-zinc-600 group-hover:scale-110'}`} fill="currentColor" />
+                        <Play
+                          className={`w-6 h-6 transition-transform ${activeClip?.id === clip.id ? 'text-indigo-400 scale-110' : 'text-zinc-600 group-hover:scale-110'}`}
+                          fill="currentColor"
+                        />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className={`font-bold text-sm mb-1 truncate ${activeClip?.id === clip.id ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                      <h4
+                        className={`font-bold text-sm mb-1 truncate ${activeClip?.id === clip.id ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}
+                      >
                         {clip.title}
                       </h4>
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">
-                          {Math.floor((clip.endTime - clip.startTime))}s duration
+                          {Math.floor(clip.endTime - clip.startTime)}s duration
                         </span>
                         <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">
                           <Sparkles className="w-2.5 h-3" />

@@ -1,9 +1,9 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
-import { clips, projects, videos, jobs, settings } from '../db/schema';
+import { clips, jobs, projects, settings, videos } from '../db/schema';
 import { dispatchVideoProcessingJob } from '../queue/producers';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
@@ -26,7 +26,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           llmModel: jobs.llmModel,
         },
         // We use count(DISTINCT) because the join with both jobs and clips causes Cartesian product expansion per project
-        clipCount: sql<number>`cast(count(DISTINCT ${clips.id}) as integer)`.mapWith(Number),
+        clipCount:
+          sql<number>`cast(count(DISTINCT ${clips.id}) as integer)`.mapWith(
+            Number,
+          ),
       })
       .from(projects)
       .leftJoin(videos, eq(projects.id, videos.projectId))
@@ -36,7 +39,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       .orderBy(desc(projects.createdAt));
 
     // Map the Drizzle result to our ProjectWithDetails frontend interface cleanly
-    return projectsWithDetails.map(row => ({
+    return projectsWithDetails.map((row) => ({
       ...row.project,
       video: row.video,
       job: row.job,
@@ -135,7 +138,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
               explanation: body.explanation,
               filePath: body.storagePath,
               updatedAt: new Date(),
-            }
+            },
           })
           .returning()
           .get();
@@ -180,7 +183,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     },
     {
       params: t.Object({ clipId: t.String() }),
-    }
+    },
   )
 
   // Update a clip's metadata or timestamps
@@ -219,7 +222,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         endTime: t.Optional(t.Number()),
         title: t.Optional(t.String()),
       }),
-    }
+    },
   )
 
   // Trigger regeneration of a clip
@@ -227,19 +230,31 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     '/clips/:clipId/regenerate',
     async ({ params: { clipId }, set }) => {
       try {
-        const clip = await db.select().from(clips).where(eq(clips.id, clipId)).get();
+        const clip = await db
+          .select()
+          .from(clips)
+          .where(eq(clips.id, clipId))
+          .get();
         if (!clip) {
           set.status = 404;
           return { error: 'Clip not found' };
         }
 
-        const video = await db.select().from(videos).where(eq(videos.id, clip.videoId)).get();
+        const video = await db
+          .select()
+          .from(videos)
+          .where(eq(videos.id, clip.videoId))
+          .get();
         if (!video) {
           set.status = 404;
           return { error: 'Source video not found' };
         }
 
-        const globalSettings = await db.select().from(settings).where(eq(settings.id, 'global')).get();
+        const globalSettings = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.id, 'global'))
+          .get();
 
         // Create a new job for the regeneration
         const jobId = uuidv4();
@@ -262,7 +277,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           videoId: clip.videoId,
           filePath: video.filePath,
           // We pass hints to the worker to only process this clip
-          onlyClipId: clip.id, 
+          onlyClipId: clip.id,
           transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
@@ -278,7 +293,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     },
     {
       params: t.Object({ clipId: t.String() }),
-    }
+    },
   )
 
   // Update a video entry (used by workers after download)
@@ -314,5 +329,5 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         filePath: t.Optional(t.String()),
         durationSeconds: t.Optional(t.Number()),
       }),
-    }
+    },
   );

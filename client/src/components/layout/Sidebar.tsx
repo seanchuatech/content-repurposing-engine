@@ -1,5 +1,12 @@
+import {
+  Download,
+  Film,
+  FolderOpen,
+  LayoutDashboard,
+  Settings,
+  Upload,
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Upload, Settings, Film, FolderOpen, Download } from 'lucide-react';
 
 export default function Sidebar() {
   const navItems = [
@@ -16,7 +23,7 @@ export default function Sidebar() {
         <Film className="w-8 h-8 text-indigo-500" />
         <span className="font-bold text-xl tracking-tight">ClipEngine</span>
       </div>
-      
+
       <nav className="flex-1 px-4 py-4 space-y-1">
         {navItems.map((item) => (
           <NavLink
@@ -24,8 +31,8 @@ export default function Sidebar() {
             to={item.to}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                isActive 
-                  ? 'bg-indigo-600 text-white' 
+                isActive
+                  ? 'bg-indigo-600 text-white'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'
               }`
             }
@@ -35,7 +42,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      
+
       <div className="p-4 border-t border-zinc-800">
         <div className="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

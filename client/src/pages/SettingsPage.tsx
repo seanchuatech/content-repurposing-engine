@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Save, Shield, Cpu, Sparkles, Sliders } from 'lucide-react';
+import { Cpu, Save, Shield, Sliders, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
 const WHISPER_MODELS = {
   groq: [
     { value: 'whisper-large-v3', label: 'Whisper Large V3 (Best Accuracy)' },
-    { value: 'whisper-large-v3-turbo', label: 'Whisper Large V3 Turbo (Fastest)' },
+    {
+      value: 'whisper-large-v3-turbo',
+      label: 'Whisper Large V3 Turbo (Fastest)',
+    },
   ],
 };
 
@@ -18,7 +21,10 @@ const LLM_MODELS = {
     { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
   ],
   gemini: [
-    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Highest Free Limits)' },
+    {
+      value: 'gemini-2.5-flash-lite',
+      label: 'Gemini 2.5 Flash-Lite (Highest Free Limits)',
+    },
     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Best Balance)' },
     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Max Reasoning)' },
   ],
@@ -27,14 +33,17 @@ const LLM_MODELS = {
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     whisperModel: 'whisper-large-v3',
-    transcriptionBackend: 'groq' as 'groq',
+    transcriptionBackend: 'groq' as const,
     llmBackend: 'openai' as 'openai' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -45,7 +54,10 @@ export default function SettingsPage() {
           setSettings({
             whisperModel: data.whisperModel,
             transcriptionBackend: 'groq',
-            llmBackend: data.llmBackend === 'ollama' ? 'openai' : data.llmBackend as 'openai' | 'gemini',
+            llmBackend:
+              data.llmBackend === 'ollama'
+                ? 'openai'
+                : (data.llmBackend as 'openai' | 'gemini'),
             llmModel: data.llmBackend === 'ollama' ? 'gpt-4o' : data.llmModel,
             exportQuality: data.exportQuality,
           });
@@ -102,14 +114,20 @@ export default function SettingsPage() {
     <div className="max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-zinc-400">Configure global AI models and processing parameters.</p>
+        <p className="text-zinc-400">
+          Configure global AI models and processing parameters.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {message && (
-          <div className={`p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}>
+          <div
+            className={`p-4 rounded-lg flex items-center gap-3 ${
+              message.type === 'success'
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                : 'bg-red-500/10 text-red-400 border border-red-500/20'
+            }`}
+          >
             <Shield className="w-5 h-5" />
             <p className="text-sm font-medium">{message.text}</p>
           </div>
@@ -122,11 +140,13 @@ export default function SettingsPage() {
               <Cpu className="w-5 h-5 text-indigo-400" />
               Transcription
             </h2>
-            
+
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Backend</label>
-                <select 
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  Backend
+                </label>
+                <select
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors opacity-70 cursor-not-allowed"
                   value={settings.transcriptionBackend}
                   disabled
@@ -136,20 +156,29 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Model</label>
-                <select 
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  Model
+                </label>
+                <select
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.whisperModel}
-                  onChange={(e) => setSettings({ ...settings, whisperModel: e.target.value })}
+                  onChange={(e) =>
+                    setSettings({ ...settings, whisperModel: e.target.value })
+                  }
                 >
-                  {(WHISPER_MODELS[settings.transcriptionBackend as keyof typeof WHISPER_MODELS] || []).map((model) => (
+                  {(
+                    WHISPER_MODELS[
+                      settings.transcriptionBackend as keyof typeof WHISPER_MODELS
+                    ] || []
+                  ).map((model) => (
                     <option key={model.value} value={model.value}>
                       {model.label}
                     </option>
                   ))}
                 </select>
                 <p className="mt-2 text-[10px] text-zinc-500 italic">
-                  Groq runs Whisper on ultra-fast LPU hardware. Requires a GROQ_API_KEY in your .env file.
+                  Groq runs Whisper on ultra-fast LPU hardware. Requires a
+                  GROQ_API_KEY in your .env file.
                 </p>
               </div>
             </div>
@@ -161,14 +190,18 @@ export default function SettingsPage() {
               <Sparkles className="w-5 h-5 text-indigo-400" />
               AI Analysis
             </h2>
-            
+
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">LLM Provider</label>
-                <select 
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  LLM Provider
+                </label>
+                <select
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmBackend}
-                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'gemini')}
+                  onChange={(e) =>
+                    handleProviderChange(e.target.value as 'openai' | 'gemini')
+                  }
                 >
                   <option value="openai">OpenAI (Cloud)</option>
                   <option value="gemini">Gemini (Cloud / Free Tier)</option>
@@ -176,13 +209,21 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Model Name</label>
-                <select 
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  Model Name
+                </label>
+                <select
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmModel}
-                  onChange={(e) => setSettings({ ...settings, llmModel: e.target.value })}
+                  onChange={(e) =>
+                    setSettings({ ...settings, llmModel: e.target.value })
+                  }
                 >
-                  {(LLM_MODELS[settings.llmBackend as keyof typeof LLM_MODELS] || []).map((model: any) => (
+                  {(
+                    LLM_MODELS[
+                      settings.llmBackend as keyof typeof LLM_MODELS
+                    ] || []
+                  ).map((model: any) => (
                     <option key={model.value} value={model.value}>
                       {model.label}
                     </option>
@@ -198,7 +239,7 @@ export default function SettingsPage() {
               <Sliders className="w-5 h-5 text-indigo-400" />
               Export Quality
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {['low', 'medium', 'high'].map((q) => (
                 <button
@@ -206,8 +247,8 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setSettings({ ...settings, exportQuality: q })}
                   className={`p-4 rounded-xl border font-bold capitalize transition-all ${
-                    settings.exportQuality === q 
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+                    settings.exportQuality === q
+                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                       : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
                   }`}
                 >

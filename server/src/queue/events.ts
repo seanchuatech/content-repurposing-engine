@@ -6,9 +6,12 @@ import { db } from '../db/client';
 import { jobs } from '../db/schema';
 
 // Dedicated connection for QueueEvents (mandatory maxRetriesPerRequest: null)
-const eventConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6380', {
-  maxRetriesPerRequest: null,
-});
+const eventConnection = new IORedis(
+  process.env.REDIS_URL || 'redis://localhost:6380',
+  {
+    maxRetriesPerRequest: null,
+  },
+);
 
 export const videoProcessingEvents = new QueueEvents('video-processing', {
   connection: eventConnection as any,

@@ -8,9 +8,9 @@ export default function Header() {
           Content Repurposing Engine
         </h2>
       </div>
-      
+
       <div className="flex items-center gap-4">
-        <button className="p-2 text-zinc-400 hover:text-white transition-colors">
+        <button type="button" className="p-2 text-zinc-400 hover:text-white transition-colors">
           <Bell className="w-5 h-5" />
         </button>
         <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">

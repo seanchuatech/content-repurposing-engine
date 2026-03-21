@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { Route, HashRouter as Router, Routes } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));

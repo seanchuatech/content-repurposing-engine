@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface UploadOptions {
   whisperModel?: string;
@@ -8,11 +9,11 @@ export interface UploadOptions {
 export async function uploadVideo(file: File, options?: UploadOptions) {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   if (options?.whisperModel) {
     formData.append('whisperModel', options.whisperModel);
   }
-  
+
   if (options?.manualSegments) {
     formData.append('manualSegments', JSON.stringify(options.manualSegments));
   }
@@ -40,7 +41,7 @@ export async function importFromYouTube(url: string, options?: YouTubeOptions) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url,
-      ...options
+      ...options,
     }),
   });
 
@@ -52,7 +53,9 @@ export async function importFromYouTube(url: string, options?: YouTubeOptions) {
   return response.json();
 }
 
-export async function getProjects(): Promise<import('../types/video').ProjectWithDetails[]> {
+export async function getProjects(): Promise<
+  import('../types/video').ProjectWithDetails[]
+> {
   const response = await fetch(`${API_BASE_URL}/projects`);
   if (!response.ok) throw new Error('Failed to fetch projects');
   return response.json();
@@ -84,7 +87,10 @@ export async function getJobByProject(projectId: string) {
   return response.json();
 }
 
-export async function updateClip(clipId: string, data: { startTime?: number; endTime?: number; title?: string }) {
+export async function updateClip(
+  clipId: string,
+  data: { startTime?: number; endTime?: number; title?: string },
+) {
   const response = await fetch(`${API_BASE_URL}/projects/clips/${clipId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -95,9 +101,12 @@ export async function updateClip(clipId: string, data: { startTime?: number; end
 }
 
 export async function regenerateClip(clipId: string) {
-  const response = await fetch(`${API_BASE_URL}/projects/clips/${clipId}/regenerate`, {
-    method: 'POST',
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/projects/clips/${clipId}/regenerate`,
+    {
+      method: 'POST',
+    },
+  );
   if (!response.ok) throw new Error('Failed to start regeneration');
   return response.json();
 }

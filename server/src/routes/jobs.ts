@@ -14,7 +14,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         .from(jobs)
         .where(eq(jobs.projectId, projectId))
         .get();
-      
+
       if (!job) {
         set.status = 404;
         return { error: 'Job not found for this project' };
@@ -33,7 +33,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     },
     {
       params: t.Object({ projectId: t.String() }),
-    }
+    },
   )
 
   // Get job status via REST
@@ -59,7 +59,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     },
     {
       params: t.Object({ id: t.String() }),
-    }
+    },
   )
 
   // PATCH job status and progress
@@ -98,7 +98,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         progressPercent: t.Optional(t.Number()),
         failedReason: t.Optional(t.String()),
       }),
-    }
+    },
   )
 
   // SSE Endpoint using native ReadableStream
@@ -112,19 +112,30 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
-          
+
           const sendEvent = (event: string, data: any) => {
-            controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+              ),
+            );
           };
 
-          sendEvent('connected', { message: 'Connected to Job Stream', jobId: id });
+          sendEvent('connected', {
+            message: 'Connected to Job Stream',
+            jobId: id,
+          });
 
           let isAlive = true;
-          
+
           // Poll loop
           while (isAlive) {
             try {
-              const job = await db.select().from(jobs).where(eq(jobs.id, id)).get();
+              const job = await db
+                .select()
+                .from(jobs)
+                .where(eq(jobs.id, id))
+                .get();
 
               if (!job) {
                 sendEvent('error', { error: 'Job not found' });
@@ -145,14 +156,20 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
                   .from(clips)
                   .where(eq(clips.jobId, id))
                   .all();
-                sendEvent('completed', { status: job.status, clips: resultClips });
+                sendEvent('completed', {
+                  status: job.status,
+                  clips: resultClips,
+                });
                 isAlive = false;
                 controller.close();
                 break;
               }
 
               if (job.status === JobState.FAILED) {
-                sendEvent('failed', { status: job.status, error: job.failedReason });
+                sendEvent('failed', {
+                  status: job.status,
+                  error: job.failedReason,
+                });
                 isAlive = false;
                 controller.close();
                 break;
@@ -170,18 +187,18 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         cancel() {
           // This runs when user closes the tab
           console.log(`SSE connection closed for job ${id}`);
-        }
+        },
       });
 
       return new Response(stream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         },
       });
     },
     {
       params: t.Object({ id: t.String() }),
-    }
+    },
   );

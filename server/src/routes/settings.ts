@@ -11,7 +11,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       .from(settings)
       .where(eq(settings.id, 'global'))
       .get();
-    
+
     if (!currentSettings) {
       // Initialize with defaults if not found
       currentSettings = await db
@@ -27,7 +27,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
         .returning()
         .get();
     }
-    
+
     return currentSettings;
   })
 
@@ -66,5 +66,5 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
         llmModel: t.Optional(t.String()),
         exportQuality: t.Optional(t.String()),
       }),
-    }
+    },
   );
