@@ -19,6 +19,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
         .values({
           id: 'global',
           whisperModel: 'base',
+          transcriptionBackend: 'local',
           llmBackend: 'openai',
           llmModel: 'gpt-4o',
           exportQuality: 'high',
@@ -60,6 +61,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     {
       body: t.Object({
         whisperModel: t.Optional(t.String()),
+        transcriptionBackend: t.Optional(t.String()),
         llmBackend: t.Optional(t.String()),
         llmModel: t.Optional(t.String()),
         exportQuality: t.Optional(t.String()),

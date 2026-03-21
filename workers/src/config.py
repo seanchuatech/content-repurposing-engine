@@ -21,6 +21,8 @@ class Config:
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+    TRANSCRIPTION_BACKEND = os.getenv("TRANSCRIPTION_BACKEND", "local")  # local | groq
     
     SERVER_URL = os.getenv("SERVER_URL", "http://localhost:3000/api")
 

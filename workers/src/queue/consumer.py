@@ -128,6 +128,7 @@ async def process_video_job(job: Job, token: str):
         whisper_model = payload.whisperModel or settings.get("whisperModel")
         llm_backend = settings.get("llmBackend")
         llm_model = settings.get("llmModel")
+        transcription_backend = settings.get("transcriptionBackend")
 
         current_file_path = payload.filePath
         only_clip_id = job.data.get("onlyClipId")
@@ -170,7 +171,7 @@ async def process_video_job(job: Job, token: str):
             transcript_path = os.path.join(config.PROJECT_ROOT, "storage", "temp", clip.job_id, "transcript.json")
             if not os.path.exists(transcript_path):
                 logger.warning("Transcript missing for regeneration, re-transcribing...")
-                transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
+                transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
             else:
                 with open(transcript_path, "r") as f:
                     transcript = json.load(f)
@@ -195,7 +196,7 @@ async def process_video_job(job: Job, token: str):
         if not transcript:
             logger.info(f"Stage 1: Transcribing {current_file_path}...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
-            transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
+            transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
         else:
             logger.info("Stage 1: Ingested subtitles found, skipping transcription.")
         

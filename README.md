@@ -14,7 +14,8 @@ formatting all at scale, locally or in the cloud.
 
 - **Upload & Management**: Upload large video files or use YouTube URLs
   directly.
-- **Smart Transcription**: Automated transcription using OpenAI’s Whisper.
+- **Smart Transcription**: Automated transcription using local OpenAI Whisper or
+  cloud-based Groq API (free tier available).
 - **Viral Moment Analysis**: Extracts top-performing clips using LLMs to detect
   engagement hooks and insight density.
 - **Auto Re-framing & Captioning**: Converts landscape 16:9 to portrait 9:16
@@ -54,7 +55,8 @@ cp .env.example .env
 Fill in `.env` with API keys and preferred configuration:
 
 - `STORAGE_BACKEND=local`
-- OpenAI or Ollama keys for LLM analysis.
+- `TRANSCRIPTION_BACKEND=local` (or `groq` for cloud transcription)
+- Groq, OpenAI, Gemini, or Ollama keys for transcription and LLM analysis.
 
 ### 2. The Fast Way: Native Runner (Recommended)
 
@@ -185,15 +187,19 @@ Use this for faster iteration and debugging.
 
 Key environment variables in `.env`:
 
-- `WHISPER_MODEL`: `tiny`, `base`, `small`, `medium`, `large-v3`.
-- `DEVICE`: `cpu`, `cuda`, `mps`.
+- `WHISPER_MODEL`: `tiny`, `base`, `small`, `medium`, `large-v3` (local) or
+  `whisper-large-v3`, `whisper-large-v3-turbo` (Groq).
+- `TRANSCRIPTION_BACKEND`: `local` (on-device Whisper) or `groq` (cloud API).
+- `GROQ_API_KEY`: API key for Groq cloud transcription (get one free at
+  [console.groq.com](https://console.groq.com/keys)).
+- `DEVICE`: `cpu`, `cuda`, `mps` (for local Whisper only).
 - `OLLAMA_URL`: Connection string for the Ollama API.
 - `LLM_MODEL`: The model name to use for analysis (default: `llama3`).
 
 ## 📁 Pipeline Stages
 
-1. **Transcribe**: Whisper speech-to-text.
-2. **Analyze**: Ollama/OpenAI virality scoring.
+1. **Transcribe**: Whisper speech-to-text (local or via Groq cloud).
+2. **Analyze**: Gemini/Ollama/OpenAI virality scoring.
 3. **Clip**: FFmpeg segment extraction.
 4. **Caption**: Hardcoded subtitle burn-in.
 5. **Reframe**: 9:16 portrait conversion.

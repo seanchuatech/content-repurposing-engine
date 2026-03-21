@@ -3,6 +3,20 @@ import { Save, Shield, Cpu, Sparkles, Sliders } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:3000/api';
 
+const WHISPER_MODELS = {
+  local: [
+    { value: 'tiny', label: 'Tiny (Fastest, CPU friendly)' },
+    { value: 'base', label: 'Base (Balanced)' },
+    { value: 'small', label: 'Small (Better accuracy)' },
+    { value: 'medium', label: 'Medium (High accuracy)' },
+    { value: 'large-v3', label: 'Large v3 (Professional quality)' },
+  ],
+  groq: [
+    { value: 'whisper-large-v3', label: 'Whisper Large V3 (Best Accuracy)' },
+    { value: 'whisper-large-v3-turbo', label: 'Whisper Large V3 Turbo (Fastest)' },
+  ],
+};
+
 const LLM_MODELS = {
   openai: [
     { value: 'gpt-4o', label: 'GPT-4o (Most Capable)' },
@@ -27,6 +41,7 @@ const LLM_MODELS = {
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     whisperModel: 'base',
+    transcriptionBackend: 'local' as 'local' | 'groq',
     llmBackend: 'openai' as 'openai' | 'ollama' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
@@ -43,6 +58,7 @@ export default function SettingsPage() {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
+            transcriptionBackend: (data.transcriptionBackend || 'local') as 'local' | 'groq',
             llmBackend: data.llmBackend as 'openai' | 'ollama' | 'gemini',
             llmModel: data.llmModel,
             exportQuality: data.exportQuality,
@@ -56,6 +72,15 @@ export default function SettingsPage() {
     }
     fetchSettings();
   }, []);
+
+  const handleTranscriptionBackendChange = (backend: 'local' | 'groq') => {
+    const defaultModel = WHISPER_MODELS[backend][0].value;
+    setSettings({
+      ...settings,
+      transcriptionBackend: backend,
+      whisperModel: defaultModel,
+    });
+  };
 
   const handleProviderChange = (provider: 'openai' | 'ollama' | 'gemini') => {
     const defaultModel = LLM_MODELS[provider][0].value;
@@ -123,20 +148,35 @@ export default function SettingsPage() {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Whisper Model</label>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Backend</label>
+                <select 
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
+                  value={settings.transcriptionBackend}
+                  onChange={(e) => handleTranscriptionBackendChange(e.target.value as 'local' | 'groq')}
+                >
+                  <option value="local">Local (Whisper on Device)</option>
+                  <option value="groq">Groq (Cloud / Free Tier)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Model</label>
                 <select 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.whisperModel}
                   onChange={(e) => setSettings({ ...settings, whisperModel: e.target.value })}
                 >
-                  <option value="tiny">Tiny (Fastest, CPU friendly)</option>
-                  <option value="base">Base (Balanced)</option>
-                  <option value="small">Small (Better accuracy)</option>
-                  <option value="medium">Medium (High accuracy)</option>
-                  <option value="large-v3">Large v3 (Professional quality)</option>
+                  {(WHISPER_MODELS[settings.transcriptionBackend as keyof typeof WHISPER_MODELS] || []).map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ))}
                 </select>
                 <p className="mt-2 text-[10px] text-zinc-500 italic">
-                  Note: Larger models require more RAM and CPU/GPU resources.
+                  {settings.transcriptionBackend === 'groq' 
+                    ? 'Groq runs Whisper on ultra-fast LPU hardware. Requires a GROQ_API_KEY in your .env file.'
+                    : 'Local models run on your device. Larger models require more RAM and CPU/GPU.'
+                  }
                 </p>
               </div>
             </div>
