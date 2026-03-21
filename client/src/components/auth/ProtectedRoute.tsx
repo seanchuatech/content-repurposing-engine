@@ -22,5 +22,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const hasSubscription = 
+    user.role === 'admin' || 
+    user.subscriptionStatus === 'active' || 
+    user.subscriptionStatus === 'trialing';
+
+  if (!hasSubscription && location.pathname !== '/pricing') {
+    return <Navigate to="/pricing" replace />;
+  }
+
   return <>{children}</>;
 };

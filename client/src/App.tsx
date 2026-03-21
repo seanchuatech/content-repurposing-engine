@@ -12,6 +12,7 @@ const ProjectPage = lazy(() => import('./pages/ProjectPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -41,6 +42,7 @@ function App() {
               <Route path="/downloader" element={<DownloaderPage />} />
               <Route path="/projects/:id" element={<ProjectPage />} />
               <Route path="/upload" element={<UploadPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Routes>

@@ -20,23 +20,27 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Cookie configuration error' };
     }
 
-    stateCookie.set({
-      value: state,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 60 * 10, // 10 minutes
-      sameSite: 'lax',
-    });
+    if (google_oauth_state) {
+      google_oauth_state.set({
+        value: state,
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 60 * 10, // 10 minutes
+        sameSite: 'lax',
+      });
+    }
 
-    verifierCookie.set({
-      value: codeVerifier,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 60 * 10,
-      sameSite: 'lax',
-    });
+    if (google_oauth_code_verifier) {
+      google_oauth_code_verifier.set({
+        value: codeVerifier,
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 60 * 10,
+        sameSite: 'lax',
+      });
+    }
 
     set.redirect = url.toString();
   })
@@ -78,24 +82,28 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
           provider: 'google',
           providerUserId: googleUser.sub,
         });
-      } else {
-        // Link provider if not already linked (optional but good)
-        // For now we assume if email matches, it's the same user
+      }
+
+      const userWithSub = await AuthService.getUserWithSubscription(user.id);
+      if (!userWithSub) {
+        set.status = 500;
+        return { error: 'Failed to retrieve user' };
       }
 
       const token = await jwt.sign({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
+        userId: userWithSub.id,
+        email: userWithSub.email,
+        role: userWithSub.role,
       });
 
       // Redirect back to frontend with token
       const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
       set.redirect = `${clientUrl}/#/login?token=${token}&user=${encodeURIComponent(JSON.stringify({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+        id: userWithSub.id,
+        email: userWithSub.email,
+        name: userWithSub.name,
+        role: userWithSub.role,
+        subscriptionStatus: userWithSub.subscriptionStatus,
       }))}`;
     } catch (error) {
       console.error('Google OAuth Error:', error);
@@ -125,6 +133,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         email: user.email,
         name: user.name,
         role: user.role,
+        subscriptionStatus: 'inactive',
       };
     },
     {
@@ -153,19 +162,26 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' };
       }
 
+      const userWithSub = await AuthService.getUserWithSubscription(user.id);
+      if (!userWithSub) {
+        set.status = 500;
+        return { error: 'Failed to retrieve user details' };
+      }
+
       const token = await jwt.sign({
-        userId: user.id,
-        email: user.email,
-        role: user.role,
+        userId: userWithSub.id,
+        email: userWithSub.email,
+        role: userWithSub.role,
       });
 
       return {
         token,
         user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          id: userWithSub.id,
+          email: userWithSub.email,
+          name: userWithSub.name,
+          role: userWithSub.role,
+          subscriptionStatus: userWithSub.subscriptionStatus,
         },
       };
     },
@@ -176,13 +192,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     },
   )
-  .get('/me', (ctx: any) => {
+  .get('/me', async (ctx: any) => {
     const { user, set } = ctx;
     if (!user) {
       set.status = 401;
       return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
     }
-    return user;
+    
+    const userWithSub = await AuthService.getUserWithSubscription(user.userId);
+    if (!userWithSub) {
+      set.status = 401;
+      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+    }
+    
+    return userWithSub;
   }, {
     isAuthenticated: true
   });

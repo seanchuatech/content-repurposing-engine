@@ -63,6 +63,7 @@ export interface Job {
   status: JobStatus;
   progressPercent: number;
   failedReason: string | null;
+  clips?: Clip[];
   createdAt: string;
   updatedAt: string;
 }

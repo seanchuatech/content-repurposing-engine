@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
-import { authProviders, users } from '../db/schema';
+import { authProviders, users, subscriptions } from '../db/schema';
 
 export interface RegisterInput {
   email: string;
@@ -13,86 +13,81 @@ export interface RegisterInput {
 }
 
 export const AuthService = {
-  /**
-   * Find a user by their email
-   */
   async findByEmail(email: string) {
-    const results = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
-    return results[0] || null;
+    const [user] = await db.select().from(users).where(eq(users.email, email) as any).limit(1);
+    return user;
   },
 
-  /**
-   * Find a user by OAuth provider and their unique ID in that provider
-   */
   async findByProvider(provider: string, providerUserId: string) {
-    const results = await db
-      .select({
-        user: users,
-      })
+    const [authProvider] = await db
+      .select()
       .from(authProviders)
-      .innerJoin(users, eq(authProviders.userId, users.id))
       .where(
         and(
           eq(authProviders.provider, provider),
           eq(authProviders.providerUserId, providerUserId),
-        ),
+        ) as any,
       )
       .limit(1);
 
-    return results[0]?.user || null;
+    if (!authProvider) return null;
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, authProvider.userId) as any)
+      .limit(1);
+
+    return user;
   },
 
-  /**
-   * Create a new user and their initial auth provider entry
-   */
   async createUser(input: RegisterInput) {
     const userId = uuidv4();
-    const passwordHash = input.password
-      ? await Bun.password.hash(input.password)
-      : null;
+    const newUser = {
+      id: userId,
+      email: input.email,
+      name: input.name || null,
+      avatarUrl: input.avatarUrl || null,
+      passwordHash: input.password ? await Bun.password.hash(input.password) : null,
+      role: 'user',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-    return await db.transaction(async (tx) => {
-      // 1. Create Core User
-      const [user] = await tx
-        .insert(users)
-        .values({
-          id: userId,
-          email: input.email.toLowerCase(),
-          passwordHash,
-          name: input.name,
-          avatarUrl: input.avatarUrl,
-          role: 'user',
-        })
-        .returning();
+    await db.insert(users).values(newUser);
 
-      // 2. Link Auth Provider
-      await tx.insert(authProviders).values({
-        id: uuidv4(),
-        userId: user.id,
-        provider: input.provider,
-        providerUserId: input.providerUserId,
-      });
-
-      // 3. Initialize Settings
-      // TODO: Add default settings initialization if needed
-
-      if (!user) {
-        throw new Error('Failed to create user');
-      }
-
-      return user;
+    await db.insert(authProviders).values({
+      id: uuidv4(),
+      userId,
+      provider: input.provider,
+      providerUserId: input.providerUserId,
     });
+
+    return newUser;
   },
 
-
-  /**
-   * Verify email/password login
-   */
   async verifyPassword(password: string, hash: string) {
     return await Bun.password.verify(password, hash);
+  },
+
+  async getUserById(id: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, id) as any).limit(1);
+    return user;
+  },
+
+  async getUserWithSubscription(userId: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId) as any).limit(1);
+    if (!user) return null;
+
+    const [sub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId) as any)
+      .limit(1);
+
+    return {
+      ...user,
+      subscriptionStatus: sub?.status || 'inactive',
+    };
   },
 };

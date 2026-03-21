@@ -6,6 +6,8 @@ import { logger } from './middleware/logger';
 import { videoProcessingEvents } from './queue/events';
 import { authGuard } from './middleware/auth-guard';
 import { authRoutes } from './routes/auth';
+import { billingRoutes } from './routes/billing';
+import { webhookRoutes } from './routes/webhooks';
 import { downloadRoutes } from './routes/download';
 import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
@@ -33,10 +35,12 @@ const app = new Elysia()
   .get('/readyz', () => ({ status: 'ready' }))
 
   // Mount API groups
+  .use(webhookRoutes) // Stripe webhooks (public)
   .group('/api', (app) =>
     app
       .use(authRoutes) // Public auth routes (internal guards handle protection)
-      .guard({ isAuthenticated: true }, (protectedApp) =>
+      .use(billingRoutes) // Billing routes (internal guards handle protection)
+      .guard({ isAuthenticated: true, requireSubscription: true }, (protectedApp) =>
         protectedApp
           .use(projectsRoutes)
           .use(uploadRoutes)

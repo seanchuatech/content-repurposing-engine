@@ -6,12 +6,14 @@ interface User {
   email: string;
   name?: string;
   role: string;
+  subscriptionStatus?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  subscriptionStatus: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -58,8 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
   };
 
+  const subscriptionStatus = user?.subscriptionStatus || null;
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, subscriptionStatus, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -160,6 +160,26 @@ export function getDownloadFileUrl(id: string) {
   return `${API_BASE_URL}/download/${id}/file`;
 }
 
+// --- BILLING ---
+
+export async function createCheckoutSession(token: string) {
+  return request<{ url: string }>('/billing/create-checkout-session', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function createPortalSession(token: string) {
+  return request<{ url: string }>('/billing/create-portal-session', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
 // Old compatibility export (optional, but good to keep if used as `api.xxx`)
 export const api = {
   login,
@@ -178,4 +198,6 @@ export const api = {
   startDownload,
   getDownload,
   getDownloadFileUrl,
+  createCheckoutSession,
+  createPortalSession,
 };
