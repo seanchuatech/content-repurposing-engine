@@ -56,8 +56,8 @@ graph TD
 *   **Data Layer**: Persists metadata (timestamps, scores, states) using **Drizzle ORM**.
 
 ### **3. Workers (Python Engine)**
-*   **Transcription**: Word-level timestamps using **OpenAI Whisper**.
-*   **Viral Scoring**: Text-based semantic analysis using **LLMs** (Ollama or OpenAI).
+*   **Transcription**: Word-level timestamps via **Groq Cloud API** (Whisper Large V3).
+*   **Viral Scoring**: Text-based semantic analysis using **LLMs** (Gemini or OpenAI).
 *   **Visual Polish**: **FFmpeg** for 9:16 reframing and burning captions.
 
 ---
@@ -69,7 +69,7 @@ When a video is submitted, it travels through an idempotent state machine:
 | Stage | Activity | Output |
 | :--- | :--- | :--- |
 | **Ingestion** | File stored in `storage/uploads` | Raw Video |
-| **Transcribe** | Whisper processes Audio -> Text | `transcript.json` |
+| **Transcribe** | Groq API processes Audio -> Text | `transcript.json` |
 | **Analyze** | LLM identifies "hooks" and viral segments | `analysis.json` |
 | **Extract** | FFmpeg slices segments from original | Raw Clips |
 | **Format** | Burn-in Captions + 9:16 Smart Crop | Final Clips |
@@ -83,7 +83,7 @@ Processing a **1-hour video** (~216,000 frames) yields different bottlenecks at 
 | Phase | Intensity | Bottleneck | Why? |
 | :--- | :--- | :--- | :--- |
 | **Download** | 🟢 Low | Network | Pure bandwidth-limited transfer. |
-| **Transcribe** | 🔴 **High** | CPU/GPU | Neural inference on 3,600s of audio. |
+| **Transcribe** | 🟡 Medium | API Speed / Network | Audio extraction and cloud API inference. |
 | **Analysis** | 🟡 Medium | API Speed | Semantic text processing is relatively fast. |
 | **Clipping** | 🟢 Low | Disk I/O | Metadata cutting without re-encoding. |
 | **Polish** | 🟣 **Critical** | CPU/GPU | **Full re-encoding** of every modified pixel. |
@@ -95,7 +95,7 @@ Processing a **1-hour video** (~216,000 frames) yields different bottlenecks at 
 *   **Runtime**: [Bun](https://bun.sh/) (Fastest JS runtime for IO-heavy services).
 *   **Queue**: [BullMQ / Redis](https://docs.bullmq.io/) (Reliable job persistence).
 *   **Media**: [FFmpeg](https://ffmpeg.org/) (The industry standard for video manipulation).
-*   **AI**: [Whisper](https://openai.com/research/whisper) & **LLM Service** (Semantic extraction).
+*   **AI**: **Groq API** (Transcription) & **Gemini/OpenAI** (Semantic extraction).
 
 ---
 
