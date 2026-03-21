@@ -18,13 +18,16 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
+    "@elysiajs/jwt": "^1.4.1",
     "@elysiajs/static": "^1.4.7",
     "@elysiajs/stream": "^1.1.0",
+    "arctic": "^3.7.0",
     "bullmq": "^5.70.4",
     "drizzle-orm": "^0.45.1",
     "elysia": "^1.4.27",
     "ioredis": "^5.10.0",
     "postgres": "^3.4.8",
+    "stripe": "^20.4.1",
     "uuid": "^13.0.0"
   }
 }

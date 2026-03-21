@@ -1,6 +1,8 @@
 import { Suspense, lazy } from 'react';
 import { Route, HashRouter as Router, Routes } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
@@ -8,6 +10,8 @@ const DownloaderPage = lazy(() => import('./pages/DownloaderPage'));
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const ProjectPage = lazy(() => import('./pages/ProjectPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 
 // Loading fallback
 const PageLoader = () => (
@@ -18,20 +22,31 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <Router>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route element={<DashboardLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/downloader" element={<DownloaderPage />} />
-            <Route path="/projects/:id" element={<ProjectPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
-      </Suspense>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            <Route
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/downloader" element={<DownloaderPage />} />
+              <Route path="/projects/:id" element={<ProjectPage />} />
+              <Route path="/upload" element={<UploadPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </Router>
+    </AuthProvider>
   );
 }
 

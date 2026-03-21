@@ -4,6 +4,8 @@ import { Elysia } from 'elysia';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
 import { videoProcessingEvents } from './queue/events';
+import { authGuard } from './middleware/auth-guard';
+import { authRoutes } from './routes/auth';
 import { downloadRoutes } from './routes/download';
 import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
@@ -18,6 +20,7 @@ const app = new Elysia()
   .use(cors())
   .use(logger)
   .use(errorHandler)
+  .use(authGuard) // Register JWT and Derivations
   .use(
     staticPlugin({
       assets: '../storage',
@@ -32,11 +35,15 @@ const app = new Elysia()
   // Mount API groups
   .group('/api', (app) =>
     app
-      .use(projectsRoutes)
-      .use(uploadRoutes)
-      .use(jobsRoutes)
-      .use(settingsRoutes)
-      .use(downloadRoutes),
+      .use(authRoutes) // Public auth routes (internal guards handle protection)
+      .guard({ isAuthenticated: true }, (protectedApp) =>
+        protectedApp
+          .use(projectsRoutes)
+          .use(uploadRoutes)
+          .use(jobsRoutes)
+          .use(settingsRoutes)
+          .use(downloadRoutes),
+      ),
   );
 
 app.listen(process.env.PORT || 3000);
