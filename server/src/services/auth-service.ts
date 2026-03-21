@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
 import { authProviders, users } from '../db/schema';
@@ -7,6 +7,7 @@ export interface RegisterInput {
   email: string;
   password?: string;
   name?: string;
+  avatarUrl?: string;
   provider: 'email' | 'google' | 'apple';
   providerUserId: string;
 }
@@ -35,8 +36,10 @@ export const AuthService = {
       .from(authProviders)
       .innerJoin(users, eq(authProviders.userId, users.id))
       .where(
-        eq(authProviders.provider, provider) &&
+        and(
+          eq(authProviders.provider, provider),
           eq(authProviders.providerUserId, providerUserId),
+        ),
       )
       .limit(1);
 
@@ -61,6 +64,7 @@ export const AuthService = {
           email: input.email.toLowerCase(),
           passwordHash,
           name: input.name,
+          avatarUrl: input.avatarUrl,
           role: 'user',
         })
         .returning();
@@ -83,6 +87,7 @@ export const AuthService = {
       return user;
     });
   },
+
 
   /**
    * Verify email/password login

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, Loader2, ArrowRight, Github } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { login as loginApi } from '../lib/api';
 
@@ -14,7 +14,29 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/';
+  const from = (location.state as any)?.from?.pathname || '/';
+
+  useEffect(() => {
+    // Handle OAuth Callback from URL parameters (hash or query)
+    // Elysia redirects to: ${clientUrl}/#/login?token=...
+    const hash = window.location.hash;
+    if (hash.includes('token=') && hash.includes('user=')) {
+      const params = new URLSearchParams(hash.split('?')[1]);
+      const token = params.get('token');
+      const userData = params.get('user');
+
+      if (token && userData) {
+        try {
+          const user = JSON.parse(decodeURIComponent(userData));
+          login(token, user);
+          navigate(from, { replace: true });
+        } catch (err) {
+          console.error('Failed to parse OAuth user data', err);
+          setError('Authentication failed. Please try again.');
+        }
+      }
+    }
+  }, [login, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +52,11 @@ const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   return (
@@ -148,25 +175,18 @@ const LoginPage: React.FC = () => {
                 <div className="w-full border-t border-slate-800"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-900 text-slate-500">Or continue with</span>
+                <span className="px-2 bg-slate-900 text-slate-500">Or sign in with</span>
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6">
               <button
                 type="button"
                 className="w-full inline-flex justify-center py-3 px-4 rounded-xl border border-slate-800 bg-slate-950 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
-                onClick={() => {/* TODO: Implement Google OAuth */}}
+                onClick={handleGoogleLogin}
               >
                 <img className="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" />
                 Google
-              </button>
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-3 px-4 rounded-xl border border-slate-800 bg-slate-950 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
-              >
-                <Github className="h-5 w-5 mr-2" />
-                GitHub
               </button>
             </div>
           </div>
