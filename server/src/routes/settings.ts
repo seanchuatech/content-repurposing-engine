@@ -18,8 +18,8 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
         .insert(settings)
         .values({
           id: 'global',
-          whisperModel: 'base',
-          transcriptionBackend: 'local',
+          whisperModel: 'whisper-large-v3',
+          transcriptionBackend: 'groq',
           llmBackend: 'openai',
           llmModel: 'gpt-4o',
           exportQuality: 'high',

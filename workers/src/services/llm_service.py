@@ -27,8 +27,6 @@ class LLMService:
 
         if target_backend == "openai":
             return await self._generate_openai(prompt, system_prompt, target_model)
-        elif target_backend == "ollama":
-            return await self._generate_ollama(prompt, system_prompt, target_model)
         elif target_backend == "gemini":
             return await self._generate_gemini(prompt, system_prompt, target_model)
         else:
@@ -53,29 +51,6 @@ class LLMService:
             return json.loads(content)
         except Exception as e:
             logger.error(f"OpenAI generation failed: {e}")
-            raise
-
-    async def _generate_ollama(self, prompt: str, system_prompt: str, model: str) -> dict:
-        logger.info(f"Generating with Ollama ({model}) at {config.OLLAMA_URL}...")
-        url = f"{config.OLLAMA_URL}/api/generate"
-        
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "system": system_prompt,
-            "stream": False,
-            "format": "json"
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                response = await client.post(url, json=payload)
-                response.raise_for_status()
-                result = response.json()
-                content = result.get("response", "{}")
-                return json.loads(content)
-        except Exception as e:
-            logger.error(f"Ollama generation failed: {e}")
             raise
 
     async def _generate_gemini(self, prompt: str, system_prompt: str, model: str) -> dict:

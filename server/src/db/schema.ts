@@ -92,8 +92,8 @@ export const clips = sqliteTable('clips', {
 // 5. Settings - global configuration
 export const settings = sqliteTable('settings', {
   id: text('id').primaryKey().default('global'),
-  whisperModel: text('whisper_model').default('base').notNull(),
-  transcriptionBackend: text('transcription_backend').default('local').notNull(), // local | groq
+  whisperModel: text('whisper_model').default('whisper-large-v3').notNull(),
+  transcriptionBackend: text('transcription_backend').default('groq').notNull(), // groq
   llmBackend: text('llm_backend').default('openai').notNull(),
   llmModel: text('llm_model').default('gpt-4o').notNull(),
   exportQuality: text('export_quality').default('high').notNull(), // low, medium, high

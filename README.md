@@ -125,38 +125,6 @@ analysis, clipping, and captioning.
 - **[uv](https://github.com/astral-sh/uv)** (recommended for dependency
   management)
 
-## 🤖 LLM Model Management (Ollama)
-
-If you are using the **Ollama** backend, you must manually "pull" (download) the models into the container before they can be used.
-
-### 1. Pulling Models
-Run the following command in your terminal to download a model:
-
-```bash
-# Recommended for Low-Spec / CPU-only devices (Fast)
-docker exec -it content-engine-ollama ollama pull phi3:latest
-
-# Good balance of speed and intelligence
-docker exec -it content-engine-ollama ollama pull mistral
-
-# High intelligence (Slower on CPU, ~4.7GB download)
-docker exec -it content-engine-ollama ollama pull llama3
-```
-
-### 2. Recommended Models by Hardware
-| Hardware Spec | Recommended Model | Ollama Name |
-| :--- | :--- | :--- |
-| **Low (Older i5/i7, no GPU)** | Phi-3 Mini | `phi3:latest` |
-| **Medium (Modern CPU, 16GB+ RAM)** | Mistral 7B | `mistral` |
-| **High (Dedicated GPU / Apple Silicon)** | Llama 3 8B | `llama3` |
-| **Ultra-Light (Extremely Fast)** | Qwen 2 1.5B | `qwen2:1.5b` |
-
-### 3. Verify Installed Models
-To see which models are currently available on your system:
-```bash
-docker exec -it content-engine-ollama ollama list
-```
-
 ## 🚀 How to Run
 
 ### Option 1: Docker (Recommended)
@@ -165,7 +133,6 @@ docker exec -it content-engine-ollama ollama list
    ```bash
    docker compose up --build -d worker
    ```
-2. **Required**: Follow the **LLM Model Management** steps above to pull your preferred model.
 
 ### Option 2: Local Development
 ...
@@ -187,19 +154,16 @@ Use this for faster iteration and debugging.
 
 Key environment variables in `.env`:
 
-- `WHISPER_MODEL`: `tiny`, `base`, `small`, `medium`, `large-v3` (local) or
-  `whisper-large-v3`, `whisper-large-v3-turbo` (Groq).
-- `TRANSCRIPTION_BACKEND`: `local` (on-device Whisper) or `groq` (cloud API).
+- `WHISPER_MODEL`: `whisper-large-v3`, `whisper-large-v3-turbo` (Groq).
+- `TRANSCRIPTION_BACKEND`: `groq` (cloud API).
 - `GROQ_API_KEY`: API key for Groq cloud transcription (get one free at
   [console.groq.com](https://console.groq.com/keys)).
-- `DEVICE`: `cpu`, `cuda`, `mps` (for local Whisper only).
-- `OLLAMA_URL`: Connection string for the Ollama API.
-- `LLM_MODEL`: The model name to use for analysis (default: `llama3`).
+- `LLM_MODEL`: The model name to use for analysis (default: `gpt-4o`).
 
 ## 📁 Pipeline Stages
 
-1. **Transcribe**: Whisper speech-to-text (local or via Groq cloud).
-2. **Analyze**: Gemini/Ollama/OpenAI virality scoring.
+1. **Transcribe**: Groq Cloud API (Whisper Large V3).
+2. **Analyze**: Gemini/OpenAI virality scoring.
 3. **Clip**: FFmpeg segment extraction.
 4. **Caption**: Hardcoded subtitle burn-in.
 5. **Reframe**: 9:16 portrait conversion.

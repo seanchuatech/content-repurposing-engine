@@ -6,10 +6,10 @@ set -e
 echo "🚀 Starting Content Repurposing Engine Native Dev Environment..."
 
 # 1. Start Infrastructure in the background via Docker Compose
-echo "📦 Ensuring Redis, Ollama, and DB UI are running..."
-if ! docker compose up -d redis ollama db-ui; then
+echo "📦 Ensuring Redis and DB UI are running..."
+if ! docker compose up -d redis db-ui; then
     echo "❌ Failed to start infrastructure via Docker Compose."
-    echo "Check if Docker is running and if there are port conflicts (e.g., port 6379 for Redis)."
+    echo "Check if Docker is running and if there are port conflicts (e.g., port 6380 for Redis)."
     exit 1
 fi
 

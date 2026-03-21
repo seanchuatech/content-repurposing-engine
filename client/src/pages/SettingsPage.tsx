@@ -4,13 +4,6 @@ import { Save, Shield, Cpu, Sparkles, Sliders } from 'lucide-react';
 const API_BASE_URL = 'http://localhost:3000/api';
 
 const WHISPER_MODELS = {
-  local: [
-    { value: 'tiny', label: 'Tiny (Fastest, CPU friendly)' },
-    { value: 'base', label: 'Base (Balanced)' },
-    { value: 'small', label: 'Small (Better accuracy)' },
-    { value: 'medium', label: 'Medium (High accuracy)' },
-    { value: 'large-v3', label: 'Large v3 (Professional quality)' },
-  ],
   groq: [
     { value: 'whisper-large-v3', label: 'Whisper Large V3 (Best Accuracy)' },
     { value: 'whisper-large-v3-turbo', label: 'Whisper Large V3 Turbo (Fastest)' },
@@ -24,13 +17,6 @@ const LLM_MODELS = {
     { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
     { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
   ],
-  ollama: [
-    { value: 'phi3:latest', label: 'Phi-3 Mini (Fastest / Recommended)' },
-    { value: 'mistral', label: 'Mistral 7B (Good Balance)' },
-    { value: 'llama3', label: 'Llama 3 8B (Smartest / Slower)' },
-    { value: 'gemma:2b', label: 'Gemma 2B (Very Light)' },
-    { value: 'qwen2:1.5b', label: 'Qwen 2 1.5B (Ultra Fast)' },
-  ],
   gemini: [
     { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (Highest Free Limits)' },
     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Best Balance)' },
@@ -40,9 +26,9 @@ const LLM_MODELS = {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
-    whisperModel: 'base',
-    transcriptionBackend: 'local' as 'local' | 'groq',
-    llmBackend: 'openai' as 'openai' | 'ollama' | 'gemini',
+    whisperModel: 'whisper-large-v3',
+    transcriptionBackend: 'groq' as 'groq',
+    llmBackend: 'openai' as 'openai' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
   });
@@ -58,9 +44,9 @@ export default function SettingsPage() {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
-            transcriptionBackend: (data.transcriptionBackend || 'local') as 'local' | 'groq',
-            llmBackend: data.llmBackend as 'openai' | 'ollama' | 'gemini',
-            llmModel: data.llmModel,
+            transcriptionBackend: 'groq',
+            llmBackend: data.llmBackend === 'ollama' ? 'openai' : data.llmBackend as 'openai' | 'gemini',
+            llmModel: data.llmBackend === 'ollama' ? 'gpt-4o' : data.llmModel,
             exportQuality: data.exportQuality,
           });
         }
@@ -73,16 +59,7 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
-  const handleTranscriptionBackendChange = (backend: 'local' | 'groq') => {
-    const defaultModel = WHISPER_MODELS[backend][0].value;
-    setSettings({
-      ...settings,
-      transcriptionBackend: backend,
-      whisperModel: defaultModel,
-    });
-  };
-
-  const handleProviderChange = (provider: 'openai' | 'ollama' | 'gemini') => {
+  const handleProviderChange = (provider: 'openai' | 'gemini') => {
     const defaultModel = LLM_MODELS[provider][0].value;
     setSettings({
       ...settings,
@@ -150,11 +127,10 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Backend</label>
                 <select 
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors opacity-70 cursor-not-allowed"
                   value={settings.transcriptionBackend}
-                  onChange={(e) => handleTranscriptionBackendChange(e.target.value as 'local' | 'groq')}
+                  disabled
                 >
-                  <option value="local">Local (Whisper on Device)</option>
                   <option value="groq">Groq (Cloud / Free Tier)</option>
                 </select>
               </div>
@@ -173,10 +149,7 @@ export default function SettingsPage() {
                   ))}
                 </select>
                 <p className="mt-2 text-[10px] text-zinc-500 italic">
-                  {settings.transcriptionBackend === 'groq' 
-                    ? 'Groq runs Whisper on ultra-fast LPU hardware. Requires a GROQ_API_KEY in your .env file.'
-                    : 'Local models run on your device. Larger models require more RAM and CPU/GPU.'
-                  }
+                  Groq runs Whisper on ultra-fast LPU hardware. Requires a GROQ_API_KEY in your .env file.
                 </p>
               </div>
             </div>
@@ -195,11 +168,10 @@ export default function SettingsPage() {
                 <select 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                   value={settings.llmBackend}
-                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'ollama' | 'gemini')}
+                  onChange={(e) => handleProviderChange(e.target.value as 'openai' | 'gemini')}
                 >
                   <option value="openai">OpenAI (Cloud)</option>
                   <option value="gemini">Gemini (Cloud / Free Tier)</option>
-                  <option value="ollama">Ollama (Local)</option>
                 </select>
               </div>
 

@@ -3,50 +3,10 @@ import os
 import subprocess
 import tempfile
 
-import whisper
-import torch
 from groq import Groq
 
 from src.config import config
 from src.logger import logger
-
-# ---------------------------------------------------------------------------
-# Local Whisper Backend
-# ---------------------------------------------------------------------------
-
-_current_model_name = None
-_model = None
-
-def get_whisper_model(model_name: str = None):
-    global _model, _current_model_name
-    
-    target_model = model_name or config.WHISPER_MODEL
-    
-    if _model is None or _current_model_name != target_model:
-        logger.info(f"Loading Whisper model '{target_model}' on device '{config.DEVICE}'...")
-        _model = whisper.load_model(target_model, device=config.DEVICE)
-        _current_model_name = target_model
-        
-    return _model
-
-def transcribe_sync(video_path: str, model_name: str = None) -> dict:
-    model = get_whisper_model(model_name)
-    logger.info(f"Transcribing {video_path} using {model_name or config.WHISPER_MODEL}...")
-    
-    # We use word_timestamps=True for better clipping precision
-    result = model.transcribe(
-        video_path,
-        verbose=False,
-        word_timestamps=True,
-        fp16=(config.DEVICE == "cuda") # only use fp16 on CUDA
-    )
-    
-    return result
-
-
-# ---------------------------------------------------------------------------
-# Groq Cloud Backend
-# ---------------------------------------------------------------------------
 
 def _extract_audio_for_groq(video_path: str) -> str:
     """
@@ -80,7 +40,7 @@ def _extract_audio_for_groq(video_path: str) -> str:
     if file_size_mb > 25:
         logger.warning(
             f"Audio file is {file_size_mb:.1f} MB, exceeding Groq's 25MB free-tier limit. "
-            "Transcription may fail. Consider using local backend for very long videos."
+            "Transcription may fail."
         )
 
     return output_path
@@ -88,18 +48,8 @@ def _extract_audio_for_groq(video_path: str) -> str:
 
 def _normalize_groq_response(groq_result) -> dict:
     """
-    Maps Groq's verbose_json transcription response to the same dict format
-    that local Whisper produces, so downstream pipeline stages work identically.
-    
-    Local Whisper format:
-    {
-        "text": "full transcript...",
-        "segments": [
-            {"id": 0, "start": 0.0, "end": 5.2, "text": "...", "words": [...]},
-            ...
-        ],
-        "language": "en"
-    }
+    Maps Groq's verbose_json transcription response to the standard dict format
+    expected by downstream pipeline stages.
     """
     segments = []
     for seg in (groq_result.segments or []):
@@ -136,10 +86,7 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
     logger.info(f"Transcribing with Groq ({target_model})...")
 
     if not config.GROQ_API_KEY:
-        raise ValueError(
-            "GROQ_API_KEY is not set. Please set it in your .env file "
-            "or switch to TRANSCRIPTION_BACKEND=local."
-        )
+        raise ValueError("GROQ_API_KEY is not set. Please set it in your .env file.")
 
     # 1. Extract and compress audio
     audio_path = _extract_audio_for_groq(video_path)
@@ -158,7 +105,7 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
                 temperature=0.0,
             )
 
-        # 3. Normalize to local Whisper format
+        # 3. Normalize to pipeline format
         result = _normalize_groq_response(transcription)
         logger.info(f"Groq transcription complete. {len(result.get('segments', []))} segments found.")
         return result
@@ -172,18 +119,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
         except OSError:
             pass
 
-
-# ---------------------------------------------------------------------------
-# Backend Router
-# ---------------------------------------------------------------------------
-
 async def transcribe(video_path: str, model_name: str = None, backend: str = None) -> dict:
     """
-    Routes transcription to the configured backend (local Whisper or Groq cloud).
+    Transcription router. All transcription is now handled by Groq.
     """
-    target_backend = backend or config.TRANSCRIPTION_BACKEND
-
-    if target_backend == "groq":
-        return await asyncio.to_thread(groq_transcribe_sync, video_path, model_name)
-    else:
-        return await asyncio.to_thread(transcribe_sync, video_path, model_name)
+    return await asyncio.to_thread(groq_transcribe_sync, video_path, model_name)
