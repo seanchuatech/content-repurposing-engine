@@ -56,6 +56,10 @@ export const jobs = sqliteTable('jobs', {
     .notNull(),
   progressPercent: integer('progress_percent').default(0).notNull(),
   failedReason: text('failed_reason'), // ONLY populated if status is FAILED
+  transcriptionBackend: text('transcription_backend'),
+  whisperModel: text('whisper_model'),
+  llmBackend: text('llm_backend'),
+  llmModel: text('llm_model'),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`(strftime('%s', 'now'))`)
     .notNull(),

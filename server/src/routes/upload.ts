@@ -4,7 +4,7 @@ import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
-import { jobs, projects, videos } from '../db/schema';
+import { jobs, projects, videos, settings } from '../db/schema';
 import { dispatchVideoProcessingJob } from '../queue/producers';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
@@ -57,6 +57,8 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: file.type,
         });
 
+        const globalSettings = await db.select().from(settings).where(eq(settings.id, 'global')).get();
+
         // 6. Create Job Entry
         const jobId = uuidv4();
         await db.insert(jobs).values({
@@ -66,6 +68,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           status: JobState.PENDING,
           progressPercent: 0,
           manualJobData: body.manualSegments ? JSON.stringify(body.manualSegments) : null,
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          whisperModel: body.whisperModel || globalSettings?.whisperModel,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         // 7. Dispatch the background processing job
@@ -74,8 +80,11 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           projectId,
           videoId,
           filePath: relativePath,
-          whisperModel: body.whisperModel,
+          whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         // 8. Return exactly what the client needs to start tracking progress
@@ -131,6 +140,8 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: 'video/youtube',
         });
 
+        const globalSettings = await db.select().from(settings).where(eq(settings.id, 'global')).get();
+
         // Create Job Entry
         await db.insert(jobs).values({
           id: jobId,
@@ -139,6 +150,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           status: JobState.PENDING,
           progressPercent: 0,
           manualJobData: body.manualSegments ? JSON.stringify(body.manualSegments) : null,
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          whisperModel: body.whisperModel || globalSettings?.whisperModel,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         // Dispatch Job with URL
@@ -147,9 +162,12 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           projectId,
           videoId,
           filePath: url,
-          whisperModel: body.whisperModel,
+          whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
           useYouTubeSubtitles: body.useYouTubeSubtitles,
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         return {

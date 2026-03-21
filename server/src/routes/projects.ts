@@ -1,19 +1,47 @@
-import { eq } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
-import { clips, projects, videos, jobs } from '../db/schema';
+import { clips, projects, videos, jobs, settings } from '../db/schema';
 import { dispatchVideoProcessingJob } from '../queue/producers';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
-  // Get all projects
+  // Get all projects with rich metadata for the Data Table
   .get('/', async () => {
-    const allProjects = await db
-      .select()
+    const projectsWithDetails = await db
+      .select({
+        project: projects,
+        video: {
+          originalName: videos.originalName,
+          mimeType: videos.mimeType,
+          durationSeconds: videos.durationSeconds,
+        },
+        job: {
+          status: jobs.status,
+          progressPercent: jobs.progressPercent,
+          transcriptionBackend: jobs.transcriptionBackend,
+          whisperModel: jobs.whisperModel,
+          llmBackend: jobs.llmBackend,
+          llmModel: jobs.llmModel,
+        },
+        // We use count(DISTINCT) because the join with both jobs and clips causes Cartesian product expansion per project
+        clipCount: sql<number>`cast(count(DISTINCT ${clips.id}) as integer)`.mapWith(Number),
+      })
       .from(projects)
-      .orderBy(projects.createdAt);
-    return allProjects;
+      .leftJoin(videos, eq(projects.id, videos.projectId))
+      .leftJoin(jobs, eq(projects.id, jobs.projectId))
+      .leftJoin(clips, eq(projects.id, clips.projectId))
+      .groupBy(projects.id)
+      .orderBy(desc(projects.createdAt));
+
+    // Map the Drizzle result to our ProjectWithDetails frontend interface cleanly
+    return projectsWithDetails.map(row => ({
+      ...row.project,
+      video: row.video,
+      job: row.job,
+      clipCount: row.clipCount,
+    }));
   })
 
   // Get a single project
@@ -211,6 +239,8 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           return { error: 'Source video not found' };
         }
 
+        const globalSettings = await db.select().from(settings).where(eq(settings.id, 'global')).get();
+
         // Create a new job for the regeneration
         const jobId = uuidv4();
         await db.insert(jobs).values({
@@ -219,6 +249,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           videoId: clip.videoId,
           status: JobState.PENDING,
           progressPercent: 0,
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          whisperModel: globalSettings?.whisperModel,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         // Dispatch job with specific clip context
@@ -229,6 +263,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           filePath: video.filePath,
           // We pass hints to the worker to only process this clip
           onlyClipId: clip.id, 
+          transcriptionBackend: globalSettings?.transcriptionBackend,
+          whisperModel: globalSettings?.whisperModel,
+          llmBackend: globalSettings?.llmBackend,
+          llmModel: globalSettings?.llmModel,
         });
 
         return { jobId, message: 'Regeneration job dispatched' };

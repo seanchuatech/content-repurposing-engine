@@ -123,12 +123,19 @@ async def process_video_job(job: Job, token: str):
         payload = JobPayload(**job.data)
         logger.debug(f"Payload loaded: {payload}")
 
-        # 0. Fetch settings with overrides
-        settings = await fetch_global_settings()
-        whisper_model = payload.whisperModel or settings.get("whisperModel")
-        llm_backend = settings.get("llmBackend")
-        llm_model = settings.get("llmModel")
-        transcription_backend = settings.get("transcriptionBackend")
+        # 0. Load settings from job payload or fallback to global overrides
+        whisper_model = payload.whisperModel
+        llm_backend = payload.llmBackend
+        llm_model = payload.llmModel
+        transcription_backend = payload.transcriptionBackend
+        
+        # If any are missing (e.g. older queued jobs), fetch global as fallback
+        if not all([whisper_model, llm_backend, llm_model, transcription_backend]):
+            settings = await fetch_global_settings()
+            whisper_model = whisper_model or settings.get("whisperModel")
+            llm_backend = llm_backend or settings.get("llmBackend")
+            llm_model = llm_model or settings.get("llmModel")
+            transcription_backend = transcription_backend or settings.get("transcriptionBackend")
 
         current_file_path = payload.filePath
         only_clip_id = job.data.get("onlyClipId")

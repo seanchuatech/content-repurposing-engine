@@ -52,7 +52,7 @@ export async function importFromYouTube(url: string, options?: YouTubeOptions) {
   return response.json();
 }
 
-export async function getProjects() {
+export async function getProjects(): Promise<import('../types/video').ProjectWithDetails[]> {
   const response = await fetch(`${API_BASE_URL}/projects`);
   if (!response.ok) throw new Error('Failed to fetch projects');
   return response.json();
@@ -61,6 +61,14 @@ export async function getProjects() {
 export async function getProject(id: string) {
   const response = await fetch(`${API_BASE_URL}/projects/${id}`);
   if (!response.ok) throw new Error('Failed to fetch project');
+  return response.json();
+}
+
+export async function deleteProject(id: string) {
+  const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete project');
   return response.json();
 }
 

@@ -2,8 +2,8 @@ import { Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/layout/DashboardLayout';
 
-// Lazy load pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const ProjectPage = lazy(() => import('./pages/ProjectPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -22,8 +22,9 @@ function App() {
         <Routes>
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<DashboardPage />} />
-            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:id" element={<ProjectPage />} />
+            <Route path="/upload" element={<UploadPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>

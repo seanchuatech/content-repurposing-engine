@@ -5,6 +5,23 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface ProjectWithDetails extends Project {
+  video: {
+    originalName: string;
+    mimeType: string;
+    durationSeconds: number | null;
+  } | null;
+  job: {
+    status: JobStatus;
+    progressPercent: number;
+    transcriptionBackend: string | null;
+    whisperModel: string | null;
+    llmBackend: string | null;
+    llmModel: string | null;
+  } | null;
+  clipCount: number;
+}
+
 export interface Video {
   id: string;
   projectId: string;

@@ -19,6 +19,10 @@ class JobPayload(BaseModel):
     whisperModel: str | None = None
     manualSegments: list[dict] | None = None
     useYouTubeSubtitles: bool = True
+    transcriptionBackend: str | None = None
+    llmBackend: str | None = None
+    llmModel: str | None = None
+    onlyClipId: str | None = None
 
     class Config:
         populate_by_name = True
