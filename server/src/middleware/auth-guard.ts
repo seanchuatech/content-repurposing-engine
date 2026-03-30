@@ -12,7 +12,7 @@ export const authGuard = new Elysia({ name: 'authGuard' })
       secret: process.env.JWT_SECRET || 'super-secret-key-change-me',
     }),
   )
-  .derive(async ({ jwt, headers: { authorization } }) => {
+  .derive({ as: 'global' }, async ({ jwt, headers: { authorization } }) => {
     if (!authorization?.startsWith('Bearer ')) {
       return { user: null };
     }
@@ -30,51 +30,55 @@ export const authGuard = new Elysia({ name: 'authGuard' })
     // sub verification is explicitly needed.
     return {
       user: {
-        id: payload.userId,
+        userId: payload.userId,
         email: payload.email,
         role: payload.role,
       },
     };
   })
-  .macro(({ onBeforeHandle }) => ({
+  .macro({
     isAuthenticated(value: boolean) {
       if (!value) return;
 
-      onBeforeHandle(({ user, set }: { user: JWTPayload | null; set: any }) => {
-        if (!user) {
-          set.status = 401;
-          return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+      return {
+        beforeHandle({ user, set }: { user: JWTPayload | null; set: any }) {
+          if (!user) {
+            set.status = 401;
+            return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+          }
         }
-      });
+      };
     },
     requireSubscription(value: boolean) {
       if (!value) return;
 
-      onBeforeHandle(async ({ user, set }: { user: JWTPayload | null; set: any }) => {
-        if (!user) {
-          set.status = 401;
-          return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+      return {
+        async beforeHandle({ user, set }: { user: JWTPayload | null; set: any }) {
+          if (!user) {
+            set.status = 401;
+            return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+          }
+
+          // Admins bypass subscription check
+          if (user.role === 'admin') return;
+
+          // Check subscription status
+          const sub = await db
+            .select()
+            .from(subscriptions)
+            .where(eq(subscriptions.userId, user.userId))
+            .limit(1);
+
+          const status = sub[0]?.status || 'inactive';
+          if (status !== 'active' && status !== 'trialing') {
+            set.status = 403;
+            return {
+              error: 'Subscription Required',
+              message: 'An active subscription is required to access this feature.',
+              code: 'SUBSCRIPTION_REQUIRED',
+            };
+          }
         }
-
-        // Admins bypass subscription check
-        if (user.role === 'admin') return;
-
-        // Check subscription status
-        const sub = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.userId, user.userId))
-          .limit(1);
-
-        const status = sub[0]?.status || 'inactive';
-        if (status !== 'active' && status !== 'trialing') {
-          set.status = 403;
-          return {
-            error: 'Subscription Required',
-            message: 'An active subscription is required to access this feature.',
-            code: 'SUBSCRIPTION_REQUIRED',
-          };
-        }
-      });
+      };
     },
-  }));
+  });

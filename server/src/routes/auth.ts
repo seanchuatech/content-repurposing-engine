@@ -192,17 +192,16 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     },
   )
-  .get('/me', async (ctx: any) => {
-    const { user, set } = ctx;
+  .get('/me', async ({ user, set }: { user: any; set: any }) => {
     if (!user) {
       set.status = 401;
-      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+      return { error: 'Unauthorized - No user found', code: 'UNAUTHORIZED' };
     }
     
     const userWithSub = await AuthService.getUserWithSubscription(user.userId);
     if (!userWithSub) {
       set.status = 401;
-      return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+      return { error: 'Unauthorized - No subscription found', code: 'UNAUTHORIZED' };
     }
     
     return userWithSub;
