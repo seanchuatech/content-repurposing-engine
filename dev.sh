@@ -23,6 +23,6 @@ npx --yes concurrently \
   -c "blue.bold,yellow.bold,green.bold" \
   -n "SERVER,WORKER,CLIENT" \
   --kill-others \
-  "cd server && bun run dev" \
+  "cd server && bun run --env-file=../.env dev" \
   "cd workers && uv sync && PYTHONPATH=. uv run python src/main.py" \
   "cd client && bun run dev"
