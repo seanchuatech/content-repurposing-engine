@@ -108,6 +108,16 @@ npm install
 npm run dev
 ```
 
+**Testing Stripe Webhooks (Optional):**
+
+1. Install the [Stripe CLI](https://stripe.com/docs/stripe-cli).
+2. Login with `stripe login`.
+3. Forward events to your local server:
+   ```bash
+   stripe listen --forward-to localhost:3000/webhooks/stripe
+   ```
+4. Update `STRIPE_WEBHOOK_SECRET` in your `.env` with the signing secret (`whsec_...`) provided by the CLI output.
+
 Visit the frontend server (typically `http://localhost:5173`) in your browser to
 interact with the engine. Upload a video to monitor progress traversing from
 upload processing directly to final edited clips seamlessly!
