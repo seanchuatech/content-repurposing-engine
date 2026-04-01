@@ -166,3 +166,10 @@ export const downloads = pgTable('downloads', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at'),
 });
+ 
+// 9. Stripe Events - For Idempotency
+export const stripeEvents = pgTable('stripe_events', {
+  id: text('id').primaryKey(), // Stripe Event ID (e.g. evt_...)
+  type: text('type').notNull(),
+  processedAt: timestamp('processed_at').defaultNow().notNull(),
+});
