@@ -1,16 +1,18 @@
 import path from 'node:path';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
+import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { jobs, projects, settings, videos } from '../db/schema';
 import { dispatchVideoProcessingJob } from '../queue/producers';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
+  .use(authGuard)
   .post(
     '/',
-    async ({ body, set }) => {
+    async ({ body, user, set }) => {
       // 1. Validate file exists
       const file = body.file as File;
       if (!file) {
@@ -52,13 +54,15 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const projectId = uuidv4();
         await db.insert(projects).values({
           id: projectId,
+          userId: user!.userId,
           title: `Project: ${file.name}`,
         });
-
+ 
         // 5. Create Video Entry
         const videoId = uuidv4();
         await db.insert(videos).values({
           id: videoId,
+          userId: user!.userId,
           projectId,
           filePath: relativePath,
           originalName: file.name,
@@ -69,12 +73,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           .select()
           .from(settings)
           .where(eq(settings.id, 'global'))
-          .get();
+          .limit(1)
+          .then((res) => res[0]);
 
         // 6. Create Job Entry
         const jobId = uuidv4();
         await db.insert(jobs).values({
           id: jobId,
+          userId: user!.userId,
           projectId,
           videoId,
           status: JobState.PENDING,
@@ -131,7 +137,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
   )
   .post(
     '/youtube',
-    async ({ body, set }) => {
+    async ({ body, user, set }) => {
       const { url } = body;
       if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
         set.status = 400;
@@ -146,12 +152,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         // Create Project
         await db.insert(projects).values({
           id: projectId,
+          userId: user!.userId,
           title: `YouTube Import: ${url}`,
         });
-
+ 
         // Create Video Entry (filePath will be updated by worker after download)
         await db.insert(videos).values({
           id: videoId,
+          userId: user!.userId,
           projectId,
           filePath: 'PENDING_DOWNLOAD',
           originalName: url,
@@ -162,11 +170,13 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           .select()
           .from(settings)
           .where(eq(settings.id, 'global'))
-          .get();
+          .limit(1)
+          .then((res) => res[0]);
 
         // Create Job Entry
         await db.insert(jobs).values({
           id: jobId,
+          userId: user!.userId,
           projectId,
           videoId,
           status: JobState.PENDING,

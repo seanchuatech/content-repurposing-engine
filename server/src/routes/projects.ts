@@ -1,14 +1,17 @@
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
+import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs, projects, settings, videos } from '../db/schema';
 import { dispatchVideoProcessingJob } from '../queue/producers';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
+  .use(authGuard)
   // Get all projects with rich metadata for the Data Table
-  .get('/', async () => {
+  .get('/', async ({ user }) => {
+    const userId = user.userId;
     const projectsWithDetails = await db
       .select({
         project: projects,
@@ -32,12 +35,24 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           ),
       })
       .from(projects)
+      .where(eq(projects.userId, userId))
       .leftJoin(videos, eq(projects.id, videos.projectId))
       .leftJoin(jobs, eq(projects.id, jobs.projectId))
       .leftJoin(clips, eq(projects.id, clips.projectId))
-      .groupBy(projects.id)
+      .groupBy(
+        projects.id,
+        videos.originalName,
+        videos.mimeType,
+        videos.durationSeconds,
+        jobs.status,
+        jobs.progressPercent,
+        jobs.transcriptionBackend,
+        jobs.whisperModel,
+        jobs.llmBackend,
+        jobs.llmModel,
+      )
       .orderBy(desc(projects.createdAt));
-
+ 
     // Map the Drizzle result to our ProjectWithDetails frontend interface cleanly
     return projectsWithDetails.map((row) => ({
       ...row.project,
@@ -50,12 +65,13 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get a single project
   .get(
     '/:id',
-    async ({ params: { id }, set }) => {
+    async ({ params: { id }, user, set }) => {
       const project = await db
         .select()
         .from(projects)
-        .where(eq(projects.id, id))
-        .get();
+        .where(and(eq(projects.id, id), eq(projects.userId, user.userId)))
+        .limit(1)
+        .then((res) => res[0]);
       if (!project) {
         set.status = 404;
         return { error: 'Project not found' };
@@ -70,17 +86,18 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Create a new project
   .post(
     '/',
-    async ({ body }) => {
+    async ({ body, user }) => {
       const id = uuidv4();
       const newProject = await db
         .insert(projects)
         .values({
           id,
+          userId: user.userId,
           title: body.title,
         })
         .returning()
-        .get();
-
+        .then((res) => res[0]);
+ 
       return newProject;
     },
     {
@@ -91,12 +108,12 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Delete a project
   .delete(
     '/:id',
-    async ({ params: { id }, set }) => {
+    async ({ params: { id }, user, set }) => {
       const deletedProject = await db
         .delete(projects)
-        .where(eq(projects.id, id))
+        .where(and(eq(projects.id, id), eq(projects.userId, user.userId)))
         .returning()
-        .get();
+        .then((res) => res[0]);
       if (!deletedProject) {
         set.status = 404;
         return { error: 'Project not found' };
@@ -111,13 +128,14 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Create a new clip for a project (used by workers)
   .post(
     '/:id/clips',
-    async ({ params: { id }, body, set }) => {
+    async ({ params: { id }, body, user, set }) => {
       try {
         const clipId = uuidv4();
         const newClip = await db
           .insert(clips)
           .values({
             id: body.id || clipId,
+            userId: user.userId,
             projectId: id,
             videoId: body.videoId,
             jobId: body.jobId,
@@ -141,8 +159,8 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
             },
           })
           .returning()
-          .get();
-
+          .then((res) => res[0]);
+ 
         return newClip;
       } catch (e) {
         console.error('Failed to create clip:', e);
@@ -169,12 +187,13 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get a single clip
   .get(
     '/clips/:clipId',
-    async ({ params: { clipId }, set }) => {
+    async ({ params: { clipId }, user, set }) => {
       const clip = await db
         .select()
         .from(clips)
-        .where(eq(clips.id, clipId))
-        .get();
+        .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
+        .limit(1)
+        .then((res) => res[0]);
       if (!clip) {
         set.status = 404;
         return { error: 'Clip not found' };
@@ -189,7 +208,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Update a clip's metadata or timestamps
   .patch(
     '/clips/:clipId',
-    async ({ params: { clipId }, body, set }) => {
+    async ({ params: { clipId }, user, body, set }) => {
       try {
         const updatedClip = await db
           .update(clips)
@@ -199,15 +218,15 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
             title: body.title,
             updatedAt: new Date(),
           })
-          .where(eq(clips.id, clipId))
+          .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
           .returning()
-          .get();
-
+          .then((res) => res[0]);
+ 
         if (!updatedClip) {
           set.status = 404;
           return { error: 'Clip not found' };
         }
-
+ 
         return updatedClip;
       } catch (e) {
         console.error('Failed to update clip:', e);
@@ -228,23 +247,29 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Trigger regeneration of a clip
   .post(
     '/clips/:clipId/regenerate',
-    async ({ params: { clipId }, set }) => {
+    async ({ params: { clipId }, user, set }) => {
+      if (!user) {
+        set.status = 401;
+        return { error: 'Unauthorized' };
+      }
       try {
         const clip = await db
           .select()
           .from(clips)
-          .where(eq(clips.id, clipId))
-          .get();
+          .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
+          .limit(1)
+          .then((res) => res[0]);
         if (!clip) {
           set.status = 404;
           return { error: 'Clip not found' };
         }
-
+ 
         const video = await db
           .select()
           .from(videos)
-          .where(eq(videos.id, clip.videoId))
-          .get();
+          .where(and(eq(videos.id, clip.videoId), eq(videos.userId, user.userId)))
+          .limit(1)
+          .then((res) => res[0]);
         if (!video) {
           set.status = 404;
           return { error: 'Source video not found' };
@@ -254,12 +279,14 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           .select()
           .from(settings)
           .where(eq(settings.id, 'global'))
-          .get();
-
+          .limit(1)
+          .then((res) => res[0]);
+ 
         // Create a new job for the regeneration
         const jobId = uuidv4();
         await db.insert(jobs).values({
           id: jobId,
+          userId: user.userId,
           projectId: clip.projectId,
           videoId: clip.videoId,
           status: JobState.PENDING,
@@ -309,8 +336,8 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           })
           .where(eq(videos.id, id))
           .returning()
-          .get();
-
+          .then((res) => res[0]);
+ 
         if (!updatedVideo) {
           set.status = 404;
           return { error: 'Video not found' };

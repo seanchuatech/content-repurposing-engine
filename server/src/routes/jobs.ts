@@ -1,19 +1,22 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
+import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
+  .use(authGuard)
   // Get job by Project ID
   .get(
     '/project/:projectId',
-    async ({ params: { projectId }, set }) => {
+    async ({ params: { projectId }, user, set }) => {
       const job = await db
         .select()
         .from(jobs)
-        .where(eq(jobs.projectId, projectId))
-        .get();
+        .where(and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)))
+        .limit(1)
+        .then((res) => res[0]);
 
       if (!job) {
         set.status = 404;
@@ -22,15 +25,14 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-        resultClips = await db
-          .select()
-          .from(clips)
-          .where(eq(clips.jobId, job.id))
-          .all();
-      }
-
-      return { ...job, clips: resultClips };
-    },
+          const resultClips = await db
+            .select()
+            .from(clips)
+            .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
+        }
+  
+        return { ...job, clips: resultClips };
+      },
     {
       params: t.Object({ projectId: t.String() }),
     },
@@ -39,8 +41,13 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   // Get job status via REST
   .get(
     '/:id',
-    async ({ params: { id }, set }) => {
-      const job = await db.select().from(jobs).where(eq(jobs.id, id)).get();
+    async ({ params: { id }, user, set }) => {
+      const job = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
+        .limit(1)
+        .then((res) => res[0]);
       if (!job) {
         set.status = 404;
         return { error: 'Job not found' };
@@ -48,12 +55,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-        resultClips = await db
-          .select()
-          .from(clips)
-          .where(eq(clips.jobId, id))
-          .all();
-      }
+          resultClips = await db
+            .select()
+            .from(clips)
+            .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
+        }
 
       return { ...job, clips: resultClips };
     },
@@ -65,7 +71,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   // PATCH job status and progress
   .patch(
     '/:id',
-    async ({ params: { id }, body, set }) => {
+    async ({ params: { id }, user, body, set }) => {
       try {
         const updatedJob = await db
           .update(jobs)
@@ -75,9 +81,9 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
             failedReason: body.failedReason,
             updatedAt: new Date(),
           })
-          .where(eq(jobs.id, id))
+          .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
           .returning()
-          .get();
+          .then((res) => res[0]);
 
         if (!updatedJob) {
           set.status = 404;
@@ -135,7 +141,8 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
                 .select()
                 .from(jobs)
                 .where(eq(jobs.id, id))
-                .get();
+                .limit(1)
+                .then((res) => res[0]);
 
               if (!job) {
                 sendEvent('error', { error: 'Job not found' });
@@ -154,8 +161,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
                 const resultClips = await db
                   .select()
                   .from(clips)
-                  .where(eq(clips.jobId, id))
-                  .all();
+                  .where(eq(clips.jobId, id));
                 sendEvent('completed', {
                   status: job.status,
                   clips: resultClips,
