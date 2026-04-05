@@ -6,3 +6,6 @@ build/
 *.log
 storage/
 content-engine.db*
+
+# AI / Internal Documentation
+.agents/

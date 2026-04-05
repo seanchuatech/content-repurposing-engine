@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# AI / Internal Documentation
+.agents/
+
+# Dependency directories
+node_modules/
+**/node_modules/
+dist/
+build/
+.turbo/
+
+# OS and IDE files
+.DS_Store
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Storage and Logs
+logs/
+*.log
+storage/
+temp/

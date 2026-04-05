@@ -90,3 +90,6 @@ Thumb.db
 *.sqlite-journal
 *.sqlite-shm
 *.sqlite-wal
+
+# AI / Internal Documentation
+.agents/

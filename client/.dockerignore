@@ -4,3 +4,6 @@ build/
 .env
 .env.*
 *.log
+
+# AI / Internal Documentation
+.agents/
