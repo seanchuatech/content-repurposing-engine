@@ -21,10 +21,16 @@ class Config:
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    DATABASE_URL = os.getenv("DATABASE_URL")
     TRANSCRIPTION_BACKEND = os.getenv("TRANSCRIPTION_BACKEND", "local")  # local | groq
     
     SERVER_URL = os.getenv("SERVER_URL", "http://localhost:3000/api")
+
+    if not GROQ_API_KEY:
+        raise ValueError("GROQ_API_KEY environment variable is missing")
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL environment variable is missing")
 
 
 config = Config()

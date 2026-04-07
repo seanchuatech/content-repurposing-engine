@@ -5,11 +5,15 @@ import { db } from '../db/client';
 import { subscriptions, users } from '../db/schema';
 import type { JWTPayload } from '../types/auth';
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is missing in production');
+}
+
 export const authGuard = new Elysia({ name: 'authGuard' })
   .use(
     jwt({
       name: 'jwt',
-      secret: process.env.JWT_SECRET || 'super-secret-key-change-me',
+      secret: process.env.JWT_SECRET!,
     }),
   )
   .derive({ as: 'global' }, async ({ jwt, headers: { authorization } }) => {
