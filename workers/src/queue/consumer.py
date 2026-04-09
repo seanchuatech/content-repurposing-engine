@@ -1,7 +1,6 @@
 import httpx
 import os
 import json
-from bullmq import Job
 
 from src.config import config
 from src.logger import logger
@@ -119,10 +118,12 @@ async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_
         logger.error(f"Failed to save clip to server: {e}")
 
 
-async def process_video_job(job: Job, token: str):
-    logger.info(f"Processing job {job.id} for project {job.data.get('projectId')}")
+async def process_video_job(job_data: dict):
+    job_id = job_data.get("jobId")
+
+    logger.info(f"Processing job {job_id} for project {job_data.get('projectId')}")
     try:
-        payload = JobPayload(**job.data)
+        payload = JobPayload(**job_data)
         logger.debug(f"Payload loaded: {payload}")
 
         # 0. Load settings from job payload or fallback to global overrides
@@ -140,7 +141,7 @@ async def process_video_job(job: Job, token: str):
             transcription_backend = transcription_backend or settings.get("transcriptionBackend")
 
         current_file_path = payload.filePath
-        only_clip_id = job.data.get("onlyClipId")
+        only_clip_id = job_data.get("onlyClipId")
 
         # 1. Handle YouTube Download
         if current_file_path.startswith('http'):
@@ -254,24 +255,26 @@ async def process_video_job(job: Job, token: str):
             await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
 
         await update_remote_job_status(payload.jobId, JobState.COMPLETED, 100)
-        logger.info(f"Completed job {job.id}")
+        logger.info(f"Completed job {job_id}")
         return {"status": "SUCCESS"}
 
     except Exception as e:
-        logger.exception(f"Failed to process job {job.id}")
+        logger.exception(f"Failed to process job {job_id}")
         try:
-            job_id = job.data.get('jobId')
-            if job_id:
-                await update_remote_job_status(job_id, JobState.FAILED, 0, failed_reason=str(e))
+            target_job_id = job_data.get('jobId')
+            if target_job_id:
+                await update_remote_job_status(target_job_id, JobState.FAILED, 0, failed_reason=str(e))
         except:
             pass
         raise e
 
-async def process_youtube_download_job(job: Job, token: str):
-    logger.info(f"Received youtube download job {job.id}")
+async def process_youtube_download_job(job_data: dict):
+    job_id = job_data.get("downloadId")
+
+    logger.info(f"Received youtube download job {job_id}")
     try:
-        payload = DownloadJobPayload(**job.data)
+        payload = DownloadJobPayload(**job_data)
         await process_youtube_download(payload)
     except Exception as e:
-        logger.error(f"Job {job.id} failed: {str(e)}")
+        logger.error(f"Job {job_id} failed: {str(e)}")
         raise e

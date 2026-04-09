@@ -4,7 +4,7 @@ import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
 import { downloads } from '../db/schema';
-import { dispatchYoutubeDownloadJob } from '../queue/producers';
+import { getDispatcher } from '../dispatcher';
 
 export const downloadRoutes = new Elysia({ prefix: '/download' })
   // List all downloads
@@ -33,7 +33,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
         status: 'PENDING',
       });
 
-      await dispatchYoutubeDownloadJob({
+      await getDispatcher().dispatchYoutubeDownload({
         downloadId,
         youtubeUrl: body.url,
         quality: body.quality,

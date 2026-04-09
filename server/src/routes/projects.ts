@@ -5,7 +5,7 @@ import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs, projects, settings, videos } from '../db/schema';
-import { dispatchVideoProcessingJob } from '../queue/producers';
+import { getDispatcher } from '../dispatcher';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
   .use(authGuard)
@@ -298,7 +298,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         });
 
         // Dispatch job with specific clip context
-        await dispatchVideoProcessingJob({
+        await getDispatcher().dispatchVideoProcessing({
           jobId,
           projectId: clip.projectId,
           videoId: clip.videoId,

@@ -6,7 +6,7 @@ import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { jobs, projects, settings, videos } from '../db/schema';
-import { dispatchVideoProcessingJob } from '../queue/producers';
+import { getDispatcher } from '../dispatcher';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
   .use(authGuard)
@@ -95,7 +95,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         });
 
         // 7. Dispatch the background processing job
-        await dispatchVideoProcessingJob({
+        await getDispatcher().dispatchVideoProcessing({
           jobId,
           projectId,
           videoId,
@@ -191,7 +191,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         });
 
         // Dispatch Job with URL
-        await dispatchVideoProcessingJob({
+        await getDispatcher().dispatchVideoProcessing({
           jobId,
           projectId,
           videoId,

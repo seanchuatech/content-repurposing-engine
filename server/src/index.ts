@@ -3,7 +3,6 @@ import { staticPlugin } from '@elysiajs/static';
 import { Elysia } from 'elysia';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
-import { videoProcessingEvents } from './queue/events';
 import { authGuard } from './middleware/auth-guard';
 import { authRoutes } from './routes/auth';
 import { billingRoutes } from './routes/billing';
@@ -13,10 +12,6 @@ import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
 import { settingsRoutes } from './routes/settings';
 import { uploadRoutes } from './routes/upload';
-
-// Log that we've initialized the events listener
-console.log('📡 Job event listener initialized');
-console.log(`📡 Queue: ${videoProcessingEvents.name}`);
 
 const app = new Elysia()
   .use(cors())
