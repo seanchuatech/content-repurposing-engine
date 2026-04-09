@@ -13,6 +13,7 @@ from src.pipeline.reframe import reframe_clip
 from src.pipeline.transcribe import transcribe_video
 from src.pipeline.utils.transcript_parser import parse_transcript_file
 from src.services.youtube_service import download_youtube_video
+from src.services.storage_service import storage_service
 from src.models.download_job import DownloadJobPayload
 from src.pipeline.download_handler import process_youtube_download
 
@@ -148,6 +149,9 @@ async def process_video_job(job_data: dict):
             logger.info(f"YouTube URL detected: {current_file_path}. Downloading...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 2)
             downloaded_path, subtitle_path = await download_youtube_video(current_file_path, payload.jobId)
+            
+            # Upload the downloaded video to S3 if needed
+            storage_service.upload_if_s3(os.path.join(config.PROJECT_ROOT, downloaded_path), downloaded_path)
             current_file_path = downloaded_path
             
             # If YouTube provided subtitles, parse them and save to temp
@@ -163,6 +167,7 @@ async def process_video_job(job_data: dict):
                     transcript_path = os.path.join(temp_dir, "transcript.json")
                     with open(transcript_path, "w") as f:
                         json.dump(transcript, f, indent=2)
+                    storage_service.upload_if_s3(transcript_path, os.path.relpath(transcript_path, config.PROJECT_ROOT))
                     
                     logger.info("Successfully ingested YouTube subtitles. Will skip transcription.")
                 except Exception as e:
@@ -172,13 +177,19 @@ async def process_video_job(job_data: dict):
                 transcript = None
 
             await update_remote_video_metadata(payload.videoId, current_file_path)
+        else:
+            # Download file from S3 if needed
+            current_file_path_abs = storage_service.download_if_s3(current_file_path)
+            transcript = None
 
         # CASE A: REGENERATE SINGLE CLIP
         if only_clip_id:
             logger.info(f"Regenerating single clip: {only_clip_id}")
             clip = await fetch_clip_from_server(only_clip_id)
             
-            transcript_path = os.path.join(config.PROJECT_ROOT, "storage", "temp", clip.job_id, "transcript.json")
+            transcript_path_rel = os.path.join("storage", "temp", clip.job_id, "transcript.json")
+            transcript_path = storage_service.download_if_s3(transcript_path_rel)
+            
             if not os.path.exists(transcript_path):
                 logger.warning("Transcript missing for regeneration, re-transcribing...")
                 transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
@@ -195,6 +206,7 @@ async def process_video_job(job_data: dict):
             await update_remote_job_status(payload.jobId, JobState.REFRAMING, 70)
             final_path = await reframe_clip(captioned_path, clip)
             
+            storage_service.upload_if_s3(os.path.join(config.PROJECT_ROOT, final_path), final_path)
             clip.storage_path = final_path
             await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
             
@@ -207,6 +219,14 @@ async def process_video_job(job_data: dict):
             logger.info(f"Stage 1: Transcribing {current_file_path}...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
             transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
+            
+            # Save transcript to temp and upload to S3
+            temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", payload.jobId)
+            os.makedirs(temp_dir, exist_ok=True)
+            transcript_path = os.path.join(temp_dir, "transcript.json")
+            with open(transcript_path, "w") as f:
+                json.dump(transcript, f, indent=2)
+            storage_service.upload_if_s3(transcript_path, os.path.relpath(transcript_path, config.PROJECT_ROOT))
         else:
             logger.info("Stage 1: Ingested subtitles found, skipping transcription.")
         
@@ -251,6 +271,7 @@ async def process_video_job(job_data: dict):
             await update_remote_job_status(payload.jobId, JobState.REFRAMING, 50 + int((i / total_clips) * 15) + 10)
             final_path = await reframe_clip(captioned_path, clip)
             
+            storage_service.upload_if_s3(os.path.join(config.PROJECT_ROOT, final_path), final_path)
             clip.storage_path = final_path
             await save_clip_to_server(payload.projectId, payload.videoId, payload.jobId, clip)
 

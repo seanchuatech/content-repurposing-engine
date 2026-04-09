@@ -18,13 +18,17 @@ const app = new Elysia()
   .use(logger)
   .use(errorHandler)
   .use(authGuard) // Register JWT and Derivations
-  .use(
+
+if (process.env.STORAGE_BACKEND !== 's3') {
+  app.use(
     staticPlugin({
       assets: '../storage',
       prefix: '/storage',
     }),
   )
+}
 
+app
   // Health checks
   .get('/healthz', () => ({ status: 'ok' }))
   .get('/readyz', () => ({ status: 'ready' }))

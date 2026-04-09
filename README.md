@@ -20,9 +20,7 @@ formatting all at scale, locally or in the cloud.
   engagement hooks and insight density.
 - **Auto Re-framing & Captioning**: Converts landscape 16:9 to portrait 9:16
   format with auto-generated hardcoded subtitles.
-- **Resilient Queueing**: BullMQ on top of Redis to guarantee job
-  persistency—workers seamlessly pick up, report progress via SSE, or retry
-  failed jobs securely.
+- **Event-Driven Architecture**: Ephemeral workers are spawned on-demand for processing, automatically reporting progress via SSE and cleanly exiting upon completion, ensuring efficient resource usage without long-running daemons.
 
 ## Tech Stack Overview
 

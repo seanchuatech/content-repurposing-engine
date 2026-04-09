@@ -7,6 +7,7 @@ import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { jobs, projects, settings, videos } from '../db/schema';
 import { getDispatcher } from '../dispatcher';
+import { getStorage } from '../lib/storage';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
   .use(authGuard)
@@ -46,9 +47,8 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const extension = path.extname(file.name) || '.mp4';
         const fileName = `${fileId}${extension}`;
         const relativePath = path.join('storage', 'uploads', fileName);
-        const absolutePath = path.resolve(process.cwd(), '..', relativePath);
 
-        await Bun.write(absolutePath, file);
+        await getStorage().save(relativePath, file);
 
         // 4. Create new Project
         const projectId = uuidv4();
