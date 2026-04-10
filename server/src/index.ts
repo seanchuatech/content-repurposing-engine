@@ -2,6 +2,7 @@ import { cors } from '@elysiajs/cors';
 import { staticPlugin } from '@elysiajs/static';
 import { rateLimit } from 'elysia-rate-limit';
 import { Elysia } from 'elysia';
+import { securityHeaders } from './middleware/security-headers';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
 import { authGuard } from './middleware/auth-guard';
@@ -16,6 +17,7 @@ import { uploadRoutes } from './routes/upload';
 
 const app = new Elysia()
   .use(cors())
+  .use(securityHeaders)
   .use(logger)
   .use(
     rateLimit({

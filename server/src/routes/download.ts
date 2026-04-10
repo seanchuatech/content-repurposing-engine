@@ -16,6 +16,12 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   .post(
     '/',
     async ({ body, set }) => {
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
+      if (!body.url || !youtubeRegex.test(body.url)) {
+        set.status = 400;
+        return { error: 'Invalid YouTube URL' };
+      }
+
       const downloadId = uuidv4();
 
       // Map quality to yt-dlp format string

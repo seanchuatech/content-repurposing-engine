@@ -21,7 +21,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         return { error: 'No video file uploaded' };
       }
 
-      // 2. Validate MIME type or extension
+      // 2. Limit file size (500MB)
+      const MAX_SIZE = 500 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        set.status = 413;
+        return { error: 'File too large. Maximum size is 500MB.' };
+      }
+
+      // 3. Validate MIME type or extension
       const validMimes = [
         'video/mp4',
         'video/quicktime',
@@ -42,7 +49,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
       }
 
       try {
-        // 3. Save the uploaded file to disk
+        // 4. Save the uploaded file to disk
         const fileId = uuidv4();
         const extension = path.extname(file.name) || '.mp4';
         const fileName = `${fileId}${extension}`;
@@ -50,22 +57,25 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
 
         await getStorage().save(relativePath, file);
 
-        // 4. Create new Project
+        // Sanitize the original filename for the DB title
+        const sanitizedTitle = file.name.replace(/[^a-zA-Z0-9\s._-]/g, '').trim();
+
+        // 5. Create new Project
         const projectId = uuidv4();
         await db.insert(projects).values({
           id: projectId,
           userId: user!.userId,
-          title: `Project: ${file.name}`,
+          title: `Project: ${sanitizedTitle}`,
         });
  
-        // 5. Create Video Entry
+        // 6. Create Video Entry
         const videoId = uuidv4();
         await db.insert(videos).values({
           id: videoId,
           userId: user!.userId,
           projectId,
           filePath: relativePath,
-          originalName: file.name,
+          originalName: sanitizedTitle,
           mimeType: file.type,
         });
 
@@ -139,7 +149,9 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
     '/youtube',
     async ({ body, user, set }) => {
       const { url } = body;
-      if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
+      
+      if (!url || !youtubeRegex.test(url)) {
         set.status = 400;
         return { error: 'Invalid YouTube URL' };
       }
