@@ -28,6 +28,15 @@ async def download_youtube_video(url: str, job_id: str) -> Tuple[str, Optional[s
     
     try:
         with YoutubeDL(ydl_opts) as ydl:
+            # First extract info without downloading to check duration
+            info = ydl.extract_info(url, download=False)
+            duration = info.get('duration', 0)
+            
+            if duration > config.MAX_VIDEO_DURATION_SECONDS:
+                minutes = config.MAX_VIDEO_DURATION_SECONDS // 60
+                raise ValueError(f"Video duration ({duration}s) exceeds the maximum allowed limit of {minutes} minutes.")
+
+            # Now perform the actual download
             info = ydl.extract_info(url, download=True)
             video_path = ydl.prepare_filename(info)
 

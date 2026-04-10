@@ -13,14 +13,14 @@ class Config:
 
     STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    LLM_BACKEND = os.getenv("LLM_BACKEND", "ollama")  # ollama, openai, gemini
-    LLM_MODEL = os.getenv("LLM_MODEL", "llama3")      # llama3, gpt-4o-mini, etc.
-    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    LLM_BACKEND = os.getenv("LLM_BACKEND", "gemini-1.5-flash") # gemini, openai
+    LLM_MODEL = os.getenv("LLM_MODEL", "gemini-1.5-flash") # gpt-4o-mini, etc.
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
-    TRANSCRIPTION_BACKEND = os.getenv("TRANSCRIPTION_BACKEND", "local")  # local | groq
+    TRANSCRIPTION_BACKEND = os.getenv("TRANSCRIPTION_BACKEND", "local") # local | groq
+    MAX_VIDEO_DURATION_SECONDS = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", 900))
     
     SERVER_URL = os.getenv("SERVER_URL", "http://localhost:3000/api")
 

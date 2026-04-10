@@ -185,6 +185,21 @@ async def process_video_job(job_data: dict):
         else:
             # Download file from S3 if needed
             current_file_path_abs = storage_service.download_if_s3(current_file_path)
+            
+            # Check duration for local file uploads
+            try:
+                info = await ffmpeg_service.get_video_info(current_file_path_abs)
+                duration = float(info.get('format', {}).get('duration', 0))
+                
+                if duration > config.MAX_VIDEO_DURATION_SECONDS:
+                    minutes = config.MAX_VIDEO_DURATION_SECONDS // 60
+                    raise ValueError(f"Video duration ({duration}s) exceeds the maximum allowed limit of {minutes} minutes.")
+            except Exception as e:
+                logger.error(f"Failed to check video duration for local file: {e}")
+                # We can choose to either re-raise or continue if ffprobe fails
+                # Let's re-raise since duration is a critical limit
+                raise e
+            
             transcript = None
 
         # CASE A: REGENERATE SINGLE CLIP
