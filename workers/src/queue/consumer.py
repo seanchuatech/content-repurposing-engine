@@ -17,6 +17,11 @@ from src.services.storage_service import storage_service
 from src.models.download_job import DownloadJobPayload
 from src.pipeline.download_handler import process_youtube_download
 
+def get_auth_headers():
+    token = os.getenv("WORKER_API_TOKEN")
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    return {}
 
 async def update_remote_job_status(job_id: str, status: JobState, progress: int, failed_reason: str = None):
     """
@@ -31,7 +36,7 @@ async def update_remote_job_status(job_id: str, status: JobState, progress: int,
         payload["failedReason"] = failed_reason
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=get_auth_headers()) as client:
             response = await client.patch(url, json=payload)
             response.raise_for_status()
     except Exception as e:
@@ -50,7 +55,7 @@ async def update_remote_video_metadata(video_id: str, file_path: str, duration: 
         payload["durationSeconds"] = int(duration)
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=get_auth_headers()) as client:
             response = await client.patch(url, json=payload)
             response.raise_for_status()
             logger.info(f"Successfully updated video metadata for {video_id}")
@@ -63,7 +68,7 @@ async def fetch_clip_from_server(clip_id: str) -> Clip:
     Fetches a specific clip's metadata from the server.
     """
     url = f"{config.SERVER_URL}/projects/clips/{clip_id}"
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=get_auth_headers()) as client:
         response = await client.get(url)
         response.raise_for_status()
         data = response.json()
@@ -84,7 +89,7 @@ async def fetch_global_settings() -> dict:
     """
     url = f"{config.SERVER_URL}/settings"
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=get_auth_headers()) as client:
             response = await client.get(url)
             response.raise_for_status()
             return response.json()
@@ -111,7 +116,7 @@ async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_
     }
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=get_auth_headers()) as client:
             response = await client.post(url, json=payload)
             response.raise_for_status()
             logger.info(f"Successfully saved clip {clip_data.id} to server.")

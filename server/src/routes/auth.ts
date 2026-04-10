@@ -47,8 +47,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .get('/google/callback', async ({ query, cookie: { google_oauth_state, google_oauth_code_verifier }, jwt, set }) => {
     const code = query.code;
     const state = query.state;
-    const storedState = google_oauth_state.value as string | undefined;
-    const storedCodeVerifier = google_oauth_code_verifier.value as string | undefined;
+    const storedState = google_oauth_state?.value as string | undefined;
+    const storedCodeVerifier = google_oauth_code_verifier?.value as string | undefined;
 
     if (!code || !state || !storedState || !storedCodeVerifier || state !== storedState) {
       set.status = 400;
@@ -73,6 +73,13 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       };
 
       // Find or create user
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      
+      if (!AuthService.isEmailAllowed(googleUser.email)) {
+        set.redirect = `${clientUrl}/#/login?error=restricted_demo`;
+        return;
+      }
+
       let user = await AuthService.findByEmail(googleUser.email);
       if (!user) {
         user = await AuthService.createUser({
@@ -97,7 +104,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       });
 
       // Redirect back to frontend with token
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
       set.redirect = `${clientUrl}/#/login?token=${token}&user=${encodeURIComponent(JSON.stringify({
         id: userWithSub.id,
         email: userWithSub.email,
@@ -114,6 +120,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/register',
     async ({ body, set }) => {
+      if (!AuthService.isEmailAllowed(body.email)) {
+        set.status = 403;
+        return { error: 'This demo is restricted to allowed email addresses only.', code: 'RESTRICTED_DEMO' };
+      }
+
       const existingUser = await AuthService.findByEmail(body.email);
       if (existingUser) {
         set.status = 400;
@@ -147,6 +158,11 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/login',
     async ({ body, jwt, set }) => {
+      if (!AuthService.isEmailAllowed(body.email)) {
+        set.status = 403;
+        return { error: 'This demo is restricted to allowed email addresses only.', code: 'RESTRICTED_DEMO' };
+      }
+
       const user = await AuthService.findByEmail(body.email);
       if (!user || !user.passwordHash) {
         set.status = 401;

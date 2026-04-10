@@ -82,7 +82,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
     """
     Transcribes audio using the Groq API (cloud-hosted Whisper).
     """
-    target_model = model_name or "whisper-large-v3"
+    groq_models = ["whisper-large-v3", "whisper-large-v3-turbo"]
+    target_model = model_name if model_name in groq_models else "whisper-large-v3"
     logger.info(f"Transcribing with Groq ({target_model})...")
 
     if not config.GROQ_API_KEY:

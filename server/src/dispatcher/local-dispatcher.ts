@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { SignJWT } from 'jose';
 import type {
   JobDispatcher,
   VideoProcessingPayload,
@@ -13,27 +14,41 @@ export class LocalDispatcher implements JobDispatcher {
     this.workersPath = path.resolve(__dirname, '../../../workers');
   }
 
+  private async generateWorkerToken(): Promise<string> {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    const jwt = await new SignJWT({ userId: 'worker', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(secret);
+    return jwt;
+  }
+
   async dispatchVideoProcessing(payload: VideoProcessingPayload): Promise<void> {
     console.log(`[LocalDispatcher] Dispatching video processing job ${payload.jobId}`);
     
-    this.spawnWorker('video-processing', payload);
+    await this.spawnWorker('video-processing', payload);
   }
 
   async dispatchYoutubeDownload(payload: YoutubeDownloadPayload): Promise<void> {
     console.log(`[LocalDispatcher] Dispatching youtube download job ${payload.downloadId}`);
 
-    this.spawnWorker('youtube-download', payload);
+    await this.spawnWorker('youtube-download', payload);
   }
 
-  private spawnWorker(mode: string, payload: any) {
+  private async spawnWorker(mode: string, payload: any) {
+    const token = await this.generateWorkerToken();
+    
     const workerProcess = spawn('uv', ['run', 'src/main.py'], {
       cwd: this.workersPath,
       stdio: 'inherit',
       detached: true,
       env: {
         ...process.env,
+        PYTHONPATH: this.workersPath,
         JOB_MODE: mode,
         JOB_PAYLOAD: JSON.stringify(payload),
+        WORKER_API_TOKEN: token,
       },
     });
 

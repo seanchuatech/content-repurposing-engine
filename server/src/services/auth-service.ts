@@ -13,6 +13,14 @@ export interface RegisterInput {
 }
 
 export const AuthService = {
+  isEmailAllowed(email: string): boolean {
+    const allowedEmailsStr = process.env.ALLOWED_DEMO_EMAILS;
+    if (!allowedEmailsStr) return true;
+    
+    const allowedEmails = allowedEmailsStr.split(',').map(e => e.trim().toLowerCase());
+    return allowedEmails.includes(email.toLowerCase());
+  },
+
   async findByEmail(email: string) {
     const [user] = await db.select().from(users).where(eq(users.email, email) as any).limit(1);
     return user;

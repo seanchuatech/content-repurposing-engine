@@ -10,7 +10,8 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       .select()
       .from(settings)
       .where(eq(settings.id, 'global'))
-      .get();
+      .limit(1)
+      .then((res) => res[0]);
 
     if (!currentSettings) {
       // Initialize with defaults if not found
@@ -25,7 +26,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
           exportQuality: 'high',
         })
         .returning()
-        .get();
+        .then((res) => res[0]);
     }
 
     return currentSettings;
@@ -44,7 +45,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
           })
           .where(eq(settings.id, 'global'))
           .returning()
-          .get();
+          .then((res) => res[0]);
 
         if (!updatedSettings) {
           set.status = 404;
