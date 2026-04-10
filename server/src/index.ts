@@ -1,5 +1,6 @@
 import { cors } from '@elysiajs/cors';
 import { staticPlugin } from '@elysiajs/static';
+import { rateLimit } from 'elysia-rate-limit';
 import { Elysia } from 'elysia';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
@@ -16,6 +17,13 @@ import { uploadRoutes } from './routes/upload';
 const app = new Elysia()
   .use(cors())
   .use(logger)
+  .use(
+    rateLimit({
+      max: Number(process.env.RATE_LIMIT_MAX) || 100,
+      duration: 60000,
+      errorResponse: 'Too Many Requests',
+    }),
+  )
   .use(errorHandler)
   .use(authGuard) // Register JWT and Derivations
 
