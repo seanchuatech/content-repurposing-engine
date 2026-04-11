@@ -93,3 +93,12 @@ Thumb.db
 
 # AI / Internal Documentation
 .agents/
+
+# Terraform (Infra)
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfvars
+infra/terraform.tfvars
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/crash.log

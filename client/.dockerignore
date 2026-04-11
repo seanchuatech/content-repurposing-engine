@@ -7,3 +7,6 @@ build/
 
 # AI / Internal Documentation
 .agents/
+
+# Infrastructure
+infra/
