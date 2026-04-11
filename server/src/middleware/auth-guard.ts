@@ -16,12 +16,19 @@ export const authGuard = new Elysia({ name: 'authGuard' })
       secret: process.env.JWT_SECRET!,
     }),
   )
-  .derive({ as: 'global' }, async ({ jwt, headers: { authorization } }) => {
-    if (!authorization?.startsWith('Bearer ')) {
+  .derive({ as: 'global' }, async ({ jwt, headers: { authorization }, query }) => {
+    let token = '';
+
+    if (authorization?.startsWith('Bearer ')) {
+      token = authorization.split(' ')[1];
+    } else if (query?.token) {
+      token = query.token as string;
+    }
+
+    if (!token) {
       return { user: null };
     }
 
-    const token = authorization.split(' ')[1];
     const payload = (await jwt.verify(token)) as unknown as JWTPayload;
 
     if (!payload || !payload.userId) {

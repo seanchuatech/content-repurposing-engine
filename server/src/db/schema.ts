@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   integer,
   pgTable,
   text,
@@ -81,7 +82,7 @@ export const videos = pgTable('videos', {
   filePath: text('file_path').notNull(),
   originalName: text('original_name').notNull(),
   mimeType: text('mime_type').notNull(),
-  durationSeconds: integer('duration_seconds'),
+  durationSeconds: doublePrecision('duration_seconds'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -124,8 +125,8 @@ export const clips = pgTable('clips', {
     .notNull()
     .references(() => jobs.id, { onDelete: 'cascade' }),
   filePath: text('file_path').notNull(),
-  startTime: integer('start_time').notNull(),
-  endTime: integer('end_time').notNull(),
+  startTime: doublePrecision('start_time').notNull(),
+  endTime: doublePrecision('end_time').notNull(),
   viralityScore: integer('virality_score'),
   title: text('title'),
   explanation: text('explanation'),

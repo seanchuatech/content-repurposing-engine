@@ -51,30 +51,55 @@ def _normalize_groq_response(groq_result) -> dict:
     Maps Groq's verbose_json transcription response to the standard dict format
     expected by downstream pipeline stages.
     """
+    # groq_result could be a dict or an object depending on the SDK version
+    segments_data = groq_result.get("segments", []) if isinstance(groq_result, dict) else (getattr(groq_result, "segments", []) or [])
+    
     segments = []
-    for seg in (groq_result.segments or []):
-        segment = {
-            "id": seg.id,
-            "start": seg.start,
-            "end": seg.end,
-            "text": seg.text,
-        }
-        # Map word-level timestamps if available
-        if hasattr(seg, "words") and seg.words:
-            segment["words"] = [
-                {
-                    "word": w.word,
-                    "start": w.start,
-                    "end": w.end,
-                }
-                for w in seg.words
-            ]
-        segments.append(segment)
+    for seg in segments_data:
+        # seg could be a dict
+        if isinstance(seg, dict):
+            segment = {
+                "id": seg.get("id"),
+                "start": seg.get("start"),
+                "end": seg.get("end"),
+                "text": seg.get("text"),
+            }
+            words_data = seg.get("words")
+            if words_data:
+                segment["words"] = [
+                    {
+                        "word": w.get("word") if isinstance(w, dict) else w.word,
+                        "start": w.get("start") if isinstance(w, dict) else w.start,
+                        "end": w.get("end") if isinstance(w, dict) else w.end,
+                    }
+                    for w in words_data
+                ]
+            segments.append(segment)
+        else:
+            segment = {
+                "id": seg.id,
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text,
+            }
+            if hasattr(seg, "words") and seg.words:
+                segment["words"] = [
+                    {
+                        "word": w.word if not isinstance(w, dict) else w.get("word"),
+                        "start": w.start if not isinstance(w, dict) else w.get("start"),
+                        "end": w.end if not isinstance(w, dict) else w.get("end"),
+                    }
+                    for w in seg.words
+                ]
+            segments.append(segment)
+
+    text_val = groq_result.get("text", "") if isinstance(groq_result, dict) else getattr(groq_result, "text", "")
+    lang_val = groq_result.get("language", "en") if isinstance(groq_result, dict) else getattr(groq_result, "language", "en")
 
     return {
-        "text": groq_result.text,
+        "text": text_val,
         "segments": segments,
-        "language": getattr(groq_result, "language", "en"),
+        "language": lang_val,
     }
 
 

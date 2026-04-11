@@ -129,11 +129,18 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     async ({ params: { id }, body, user, set }) => {
       try {
         const clipId = uuidv4();
+        
+        let targetUserId = user.userId;
+        if (user.role === 'admin' && body.jobId) {
+          const job = await db.select().from(jobs).where(eq(jobs.id, body.jobId)).limit(1).then(res => res[0]);
+          if (job) targetUserId = job.userId;
+        }
+
         const newClip = await db
           .insert(clips)
           .values({
             id: body.id || clipId,
-            userId: user.userId,
+            userId: targetUserId,
             projectId: id,
             videoId: body.videoId,
             jobId: body.jobId,
@@ -189,7 +196,11 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       const clip = await db
         .select()
         .from(clips)
-        .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
+        .where(
+          user.role === 'admin'
+            ? eq(clips.id, clipId)
+            : and(eq(clips.id, clipId), eq(clips.userId, user.userId))
+        )
         .limit(1)
         .then((res) => res[0]);
       if (!clip) {

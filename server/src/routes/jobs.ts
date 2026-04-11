@@ -25,11 +25,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-          const resultClips = await db
-            .select()
-            .from(clips)
-            .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
-        }
+        resultClips = await db
+          .select()
+          .from(clips)
+          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
+      }
   
         return { ...job, clips: resultClips };
       },
@@ -45,7 +45,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
       const job = await db
         .select()
         .from(jobs)
-        .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
+        .where(
+          user!.role === 'admin'
+            ? eq(jobs.id, id)
+            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId))
+        )
         .limit(1)
         .then((res) => res[0]);
       if (!job) {
@@ -81,7 +85,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
             failedReason: body.failedReason,
             updatedAt: new Date(),
           })
-          .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
+          .where(
+            user!.role === 'admin'
+              ? eq(jobs.id, id)
+              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId))
+          )
           .returning()
           .then((res) => res[0]);
 
