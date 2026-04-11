@@ -1,0 +1,87 @@
+name: Terraform Drift Detection
+
+on:
+  schedule:
+    # Run every day at 00:00 UTC to detect infrastructure drift
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  TF_WORKING_DIR: infra/environments/prod
+
+jobs:
+  drift-check:
+    name: Check for Infrastructure Drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.6"
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
+
+      - name: Terraform Plan (drift detection)
+        id: plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        # -detailed-exitcode: exit 0 = no diff, exit 1 = error, exit 2 = changes detected
+        run: |
+          terraform plan \
+            -detailed-exitcode \
+            -input=false \
+            -var="domain_name=leonardseanchua.dev" \
+            -var="github_repo=seanchuatech/content-repurposing-engine" \
+            -var="jwt_secret=drift-check-placeholder" \
+            -var="db_password=drift-check-placeholder" \
+            -var="stripe_secret_key=drift-check-placeholder" \
+            -var="stripe_webhook_secret=drift-check-placeholder" \
+            -var="stripe_price_id=drift-check-placeholder" \
+            -var="groq_api_key=drift-check-placeholder" \
+            -var="gemini_api_key=drift-check-placeholder" \
+            -var="google_client_id=drift-check-placeholder" \
+            -var="google_client_secret=drift-check-placeholder" \
+            -out=tfplan 2>&1 | tee plan_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "drift_detected=true" >> $GITHUB_OUTPUT
+          elif [ $EXIT_CODE -eq 0 ]; then
+            echo "drift_detected=false" >> $GITHUB_OUTPUT
+          else
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Report drift in Job Summary
+        if: steps.plan.outputs.drift_detected == 'true'
+        run: |
+          echo "## ⚠️ Infrastructure Drift Detected" >> $GITHUB_STEP_SUMMARY
+          echo "Terraform detected differences between the state file and real AWS resources." >> $GITHUB_STEP_SUMMARY
+          echo "Run \`terraform plan\` locally to review and \`terraform apply\` to reconcile." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat plan_output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: No drift detected
+        if: steps.plan.outputs.drift_detected == 'false'
+        run: |
+          echo "## ✅ No Infrastructure Drift" >> $GITHUB_STEP_SUMMARY
+          echo "Infrastructure matches Terraform state." >> $GITHUB_STEP_SUMMARY

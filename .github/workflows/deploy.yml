@@ -1,0 +1,286 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Only allow one deploy at a time — prevent race conditions
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # Never cancel a deploy in progress
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECS_CLUSTER: content-engine-prod-cluster
+  ECS_SERVICE_API: content-engine-prod-api
+  WORKER_TASK_FAMILY: content-engine-prod-worker
+  S3_SPA_BUCKET: content-engine-prod-spa
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+
+jobs:
+  # ── Run CI checks before deploying ───────────────────────────────────────────
+  # (Reuses the ci.yml logic via a job dependency — keeps this file clean)
+
+  # ── Build & Push API Image ────────────────────────────────────────────────────
+  build-api:
+    name: Build & Push API Image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push API image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          REPO: ${{ secrets.API_ECR_REPOSITORY }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$REPO:$IMAGE_TAG"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file ./server/Dockerfile \
+            --tag "$IMAGE" \
+            --tag "$ECR_REGISTRY/$REPO:latest" \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --push \
+            .
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+  # ── Build & Push Worker Image ─────────────────────────────────────────────────
+  build-worker:
+    name: Build & Push Worker Image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push Worker image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          REPO: ${{ secrets.WORKER_ECR_REPOSITORY }}
+        run: |
+          IMAGE="$ECR_REGISTRY/$REPO:$IMAGE_TAG"
+          docker buildx build \
+            --platform linux/amd64 \
+            --file ./workers/Dockerfile \
+            --tag "$IMAGE" \
+            --tag "$ECR_REGISTRY/$REPO:latest" \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --push \
+            ./workers
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+  # ── Deploy API to ECS ─────────────────────────────────────────────────────────
+  deploy-api:
+    name: Deploy API to ECS
+    runs-on: ubuntu-latest
+    needs: [build-api]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current API task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition content-engine-prod-api \
+            --query taskDefinition \
+            > task-def-api.json
+
+      - name: Update task definition with new API image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def-api.json
+          container-name: api
+          image: ${{ needs.build-api.outputs.image }}
+
+      - name: Register and deploy new API task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_API }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  # ── Register Updated Worker Task Definition ───────────────────────────────────
+  # The worker has no ECS Service — we just register the new task def so
+  # future RunTask calls by the API use the updated image.
+  register-worker:
+    name: Register Worker Task Definition
+    runs-on: ubuntu-latest
+    needs: [build-worker]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current Worker task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition content-engine-prod-worker \
+            --query taskDefinition \
+            > task-def-worker.json
+
+      - name: Update task definition with new Worker image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def-worker.json
+          container-name: worker
+          image: ${{ needs.build-worker.outputs.image }}
+
+      - name: Register new Worker task definition
+        # Note: no ECS service to update — the new ARN will be automatically
+        # used by ecs:RunTask on the next request.
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.task-def.outputs.task-definition }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "✅ New worker task definition registered: $TASK_DEF_ARN"
+          
+          # Update the SSM parameter so the API always launches the latest worker
+          aws ssm put-parameter \
+            --name "/content-engine-prod/worker_task_def_arn" \
+            --value "$TASK_DEF_ARN" \
+            --type "String" \
+            --overwrite
+
+  # ── Deploy SPA to S3 + Invalidate CloudFront ──────────────────────────────────
+  deploy-spa:
+    name: Deploy SPA to S3
+    runs-on: ubuntu-latest
+    # SPA can deploy in parallel with backend deployments
+    needs: []  # No backend dependency
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build SPA
+        working-directory: client
+        env:
+          VITE_API_URL: https://studio.leonardseanchua.dev
+        run: bun run build
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync SPA to S3
+        run: |
+          # Sync with long cache for hashed assets, short cache for index.html
+          aws s3 sync client/dist/ s3://${{ env.S3_SPA_BUCKET }}/ \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+          aws s3 cp client/dist/index.html s3://${{ env.S3_SPA_BUCKET }}/index.html \
+            --cache-control "public, max-age=0, must-revalidate"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+  # ── Deployment Summary ────────────────────────────────────────────────────────
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy-api, register-worker, deploy-spa]
+    if: always()
+
+    steps:
+      - name: Print deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API (ECS Service) | ${{ needs.deploy-api.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Worker (Task Def) | ${{ needs.register-worker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SPA (S3 + CF)     | ${{ needs.deploy-spa.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
