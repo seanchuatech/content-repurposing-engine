@@ -136,15 +136,13 @@ async def process_video_job(job_data: dict):
         whisper_model = payload.whisperModel
         llm_backend = payload.llmBackend
         llm_model = payload.llmModel
-        transcription_backend = payload.transcriptionBackend
         
         # If any are missing (e.g. older queued jobs), fetch global as fallback
-        if not all([whisper_model, llm_backend, llm_model, transcription_backend]):
+        if not all([whisper_model, llm_backend, llm_model]):
             settings = await fetch_global_settings()
             whisper_model = whisper_model or settings.get("whisperModel")
             llm_backend = llm_backend or settings.get("llmBackend")
             llm_model = llm_model or settings.get("llmModel")
-            transcription_backend = transcription_backend or settings.get("transcriptionBackend")
 
         current_file_path = payload.filePath
         only_clip_id = job_data.get("onlyClipId")
@@ -212,7 +210,7 @@ async def process_video_job(job_data: dict):
             
             if not os.path.exists(transcript_path):
                 logger.warning("Transcript missing for regeneration, re-transcribing...")
-                transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
+                transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
             else:
                 with open(transcript_path, "r") as f:
                     transcript = json.load(f)
@@ -238,7 +236,7 @@ async def process_video_job(job_data: dict):
         if not transcript:
             logger.info(f"Stage 1: Transcribing {current_file_path}...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
-            transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model, transcription_backend=transcription_backend)
+            transcript = await transcribe_video(payload.jobId, current_file_path, model_name=whisper_model)
             
             # Save transcript to temp and upload to S3
             temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", payload.jobId)

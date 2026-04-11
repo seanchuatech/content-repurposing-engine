@@ -120,7 +120,7 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
         except OSError:
             pass
 
-async def transcribe(video_path: str, model_name: str = None, backend: str = None) -> dict:
+async def transcribe(video_path: str, model_name: str = None) -> dict:
     """
     Transcription router. All transcription is now handled by Groq.
     """

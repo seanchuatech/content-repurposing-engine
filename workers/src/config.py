@@ -8,9 +8,6 @@ class Config:
     # base, tiny, small, medium, large-v3
     WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")
 
-    # cpu, cuda, mps
-    DEVICE = os.getenv("DEVICE", "cpu")
-
     STORAGE_BACKEND = os.getenv("STORAGE_BACKEND", "local")
     PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     LLM_BACKEND = os.getenv("LLM_BACKEND", "gemini-1.5-flash") # gemini, openai
@@ -19,7 +16,6 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
-    TRANSCRIPTION_BACKEND = os.getenv("TRANSCRIPTION_BACKEND", "local") # local | groq
     MAX_VIDEO_DURATION_SECONDS = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", 900))
     
     SERVER_URL = os.getenv("SERVER_URL", "http://localhost:3000/api")

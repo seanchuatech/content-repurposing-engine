@@ -98,7 +98,6 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           manualJobData: body.manualSegments
             ? JSON.stringify(body.manualSegments)
             : null,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
@@ -112,7 +111,6 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           filePath: relativePath,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });
@@ -196,7 +194,6 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           manualJobData: body.manualSegments
             ? JSON.stringify(body.manualSegments)
             : null,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
@@ -211,7 +208,6 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
           useYouTubeSubtitles: body.useYouTubeSubtitles,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });

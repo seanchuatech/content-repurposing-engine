@@ -5,9 +5,9 @@ from src.config import config
 from src.logger import logger
 from src.services.whisper_service import transcribe
 
-async def transcribe_video(job_id: str, video_path_rel: str, model_name: str = None, transcription_backend: str = None) -> dict:
+async def transcribe_video(job_id: str, video_path_rel: str, model_name: str = None) -> dict:
     """
-    Transcribes a video file using the configured backend (local Whisper or Groq cloud)
+    Transcribes a video file using the configured backend (Groq cloud)
     and saves results to temp storage.
     """
     video_path_abs = os.path.join(config.PROJECT_ROOT, video_path_rel)
@@ -18,8 +18,8 @@ async def transcribe_video(job_id: str, video_path_rel: str, model_name: str = N
 
     logger.info(f"Starting transcription for {video_path_abs}")
     
-    # Route to the configured backend (local or groq)
-    result = await transcribe(video_path_abs, model_name=model_name, backend=transcription_backend)
+    # Route to the configured backend (groq)
+    result = await transcribe(video_path_abs, model_name=model_name)
     
     # Prepare temp storage directory
     temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", job_id)

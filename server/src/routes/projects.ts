@@ -23,7 +23,6 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         job: {
           status: jobs.status,
           progressPercent: jobs.progressPercent,
-          transcriptionBackend: jobs.transcriptionBackend,
           whisperModel: jobs.whisperModel,
           llmBackend: jobs.llmBackend,
           llmModel: jobs.llmModel,
@@ -46,7 +45,6 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         videos.durationSeconds,
         jobs.status,
         jobs.progressPercent,
-        jobs.transcriptionBackend,
         jobs.whisperModel,
         jobs.llmBackend,
         jobs.llmModel,
@@ -291,7 +289,6 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           videoId: clip.videoId,
           status: JobState.PENDING,
           progressPercent: 0,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
@@ -305,7 +302,6 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           filePath: video.filePath,
           // We pass hints to the worker to only process this clip
           onlyClipId: clip.id,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,

@@ -100,7 +100,6 @@ export const jobs = pgTable('jobs', {
   status: text('status').default(JobState.PENDING).notNull(),
   progressPercent: integer('progress_percent').default(0).notNull(),
   failedReason: text('failed_reason'),
-  transcriptionBackend: text('transcription_backend'),
   whisperModel: text('whisper_model'),
   llmBackend: text('llm_backend'),
   llmModel: text('llm_model'),
@@ -142,7 +141,6 @@ export const settings = pgTable('settings', {
     .unique()
     .references(() => users.id, { onDelete: 'cascade' }),
   whisperModel: text('whisper_model').default('whisper-large-v3').notNull(),
-  transcriptionBackend: text('transcription_backend').default('groq').notNull(),
   llmBackend: text('llm_backend').default('openai').notNull(),
   llmModel: text('llm_model').default('gpt-4o').notNull(),
   exportQuality: text('export_quality').default('high').notNull(),

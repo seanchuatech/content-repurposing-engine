@@ -6,7 +6,6 @@ export interface VideoProcessingPayload {
   manualSegments?: { start: number; end: number; title: string }[];
   whisperModel?: string;
   useYouTubeSubtitles?: boolean;
-  transcriptionBackend?: string;
   llmBackend?: string;
   llmModel?: string;
   onlyClipId?: string;
