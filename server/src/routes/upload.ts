@@ -79,10 +79,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: file.type,
         });
 
-        const globalSettings = await db
+        let globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.id, 'global'))
+          .where(eq(settings.userId, user!.userId))
           .limit(1)
           .then((res) => res[0]);
 
@@ -176,10 +176,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: 'video/youtube',
         });
 
-        const globalSettings = await db
+        let globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.id, 'global'))
+          .where(eq(settings.userId, user!.userId))
           .limit(1)
           .then((res) => res[0]);
 

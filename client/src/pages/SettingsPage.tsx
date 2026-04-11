@@ -34,7 +34,6 @@ export default function SettingsPage() {
   const { token, subscriptionStatus } = useAuth();
   const [settings, setSettings] = useState({
     whisperModel: 'whisper-large-v3',
-    transcriptionBackend: 'groq' as const,
     llmBackend: 'openai' as 'openai' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
@@ -60,7 +59,6 @@ export default function SettingsPage() {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
-            transcriptionBackend: 'groq',
             llmBackend:
               data.llmBackend === 'ollama'
                 ? 'openai'
@@ -220,7 +218,7 @@ export default function SettingsPage() {
                   </label>
                   <select
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors opacity-70 cursor-not-allowed"
-                    value={settings.transcriptionBackend}
+                    value="groq"
                     disabled
                   >
                     <option value="groq">Groq (Cloud / Free Tier)</option>
@@ -239,9 +237,7 @@ export default function SettingsPage() {
                     }
                   >
                     {(
-                      WHISPER_MODELS[
-                        settings.transcriptionBackend as keyof typeof WHISPER_MODELS
-                      ] || []
+                      WHISPER_MODELS['groq'] || []
                     ).map((model) => (
                       <option key={model.value} value={model.value}>
                         {model.label}

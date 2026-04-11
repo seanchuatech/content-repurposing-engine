@@ -1,15 +1,18 @@
 import { eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/client';
 import { settings } from '../db/schema';
+import { authGuard } from '../middleware/auth-guard';
 
 export const settingsRoutes = new Elysia({ prefix: '/settings' })
-  // Get global settings
-  .get('/', async () => {
+  .use(authGuard)
+  // Get user settings
+  .get('/', async ({ user }) => {
     let currentSettings = await db
       .select()
       .from(settings)
-      .where(eq(settings.id, 'global'))
+      .where(eq(settings.userId, user!.userId))
       .limit(1)
       .then((res) => res[0]);
 
@@ -18,7 +21,8 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       currentSettings = await db
         .insert(settings)
         .values({
-          id: 'global',
+          id: uuidv4(),
+          userId: user!.userId,
           whisperModel: 'whisper-large-v3',
           llmBackend: 'openai',
           llmModel: 'gpt-4o',
@@ -31,10 +35,10 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     return currentSettings;
   })
 
-  // Update global settings
+  // Update user settings
   .patch(
     '/',
-    async ({ body, set }) => {
+    async ({ body, user, set }) => {
       try {
         const updatedSettings = await db
           .update(settings)
@@ -42,7 +46,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
             ...body,
             updatedAt: new Date(),
           })
-          .where(eq(settings.id, 'global'))
+          .where(eq(settings.userId, user!.userId))
           .returning()
           .then((res) => res[0]);
 
