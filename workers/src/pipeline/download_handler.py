@@ -6,6 +6,7 @@ from pathlib import Path
 from src.config import config
 from src.logger import logger
 from src.models.download_job import DownloadJobPayload
+from src.utils.api import get_auth_headers
 
 async def update_download_status(download_id: str, status: str, progress: int = 0, file_path: str = None, file_name: str = None, file_size: int = None, failed_reason: str = None):
     url = f"{config.SERVER_URL}/download/{download_id}"
@@ -19,7 +20,7 @@ async def update_download_status(download_id: str, status: str, progress: int = 
     if failed_reason: payload["failedReason"] = failed_reason
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=get_auth_headers()) as client:
             response = await client.patch(url, json=payload)
             response.raise_for_status()
     except Exception as e:

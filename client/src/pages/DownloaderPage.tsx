@@ -65,6 +65,29 @@ export default function DownloaderPage() {
     return () => clearInterval(interval);
   }, [isPolling]);
 
+  const handleFileDownload = async (download: DownloadRecord) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/download/${download.id}/file`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = download.fileName || `download_${download.id}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('File download failed:', err);
+      setError('Failed to download file. Please try again.');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
@@ -299,14 +322,14 @@ export default function DownloaderPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         {download.status === 'COMPLETED' ? (
-                          <a
-                            href={getDownloadFileUrl(download.id)}
-                            download
+                          <button
+                            type="button"
+                            onClick={() => handleFileDownload(download)}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-lg text-xs font-semibold transition-colors border border-zinc-700 shadow-sm"
                           >
                             <Download className="w-3.5 h-3.5" />
                             Save File
-                          </a>
+                          </button>
                         ) : download.status === 'FAILED' ? (
                           <button
                             onClick={() => {

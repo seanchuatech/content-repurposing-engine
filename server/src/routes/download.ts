@@ -1,21 +1,27 @@
 import path from 'node:path';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
+import { authGuard } from '../middleware/auth-guard';
 import { db } from '../db/client';
 import { downloads } from '../db/schema';
 import { getDispatcher } from '../dispatcher';
 
 export const downloadRoutes = new Elysia({ prefix: '/download' })
+  .use(authGuard)
   // List all downloads
-  .get('/', async () => {
-    return await db.select().from(downloads).orderBy(desc(downloads.createdAt));
+  .get('/', async ({ user }) => {
+    return await db
+      .select()
+      .from(downloads)
+      .where(eq(downloads.userId, user!.userId))
+      .orderBy(desc(downloads.createdAt));
   })
 
   // Start new download
   .post(
     '/',
-    async ({ body, set }) => {
+    async ({ body, user, set }) => {
       const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
       if (!body.url || !youtubeRegex.test(body.url)) {
         set.status = 400;
@@ -34,6 +40,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
 
       await db.insert(downloads).values({
         id: downloadId,
+        userId: user!.userId,
         youtubeUrl: body.url,
         quality: body.quality,
         status: 'PENDING',
@@ -63,12 +70,15 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   )
 
   // Get status
-  .get('/:id', async ({ params: { id }, set }) => {
+  .get('/:id', async ({ params: { id }, user, set }) => {
     const record = await db
       .select()
       .from(downloads)
-      .where(eq(downloads.id, id))
-      .get();
+      .where(
+        and(eq(downloads.id, id), eq(downloads.userId, user!.userId))
+      )
+      .limit(1)
+      .then((res) => res[0]);
     if (!record) {
       set.status = 404;
       return { error: 'Not found' };
@@ -79,7 +89,13 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   // Update status (called by python worker)
   .patch(
     '/:id',
-    async ({ params: { id }, body, set }) => {
+    async ({ params: { id }, user, body, set }) => {
+      // Security: Only workers (admins) can update download metadata/path
+      if (user?.role !== 'admin') {
+        set.status = 403;
+        return { error: 'Forbidden: Only workers can update download status' };
+      }
+
       // Typecasting Date here because schema defaults to CURRENT_TIMESTAMP sql
       const record = await db
         .update(downloads)
@@ -89,7 +105,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
         })
         .where(eq(downloads.id, id))
         .returning()
-        .get();
+        .then((res) => res[0]);
 
       if (!record) {
         set.status = 404;
@@ -110,12 +126,15 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   )
 
   // Download file
-  .get('/:id/file', async ({ params: { id }, set }) => {
+  .get('/:id/file', async ({ params: { id }, user, set }) => {
     const record = await db
       .select()
       .from(downloads)
-      .where(eq(downloads.id, id))
-      .get();
+      .where(
+        and(eq(downloads.id, id), eq(downloads.userId, user!.userId))
+      )
+      .limit(1)
+      .then((res) => res[0]);
     if (!record || !record.filePath) {
       set.status = 404;
       return { error: 'File not found or not completed' };

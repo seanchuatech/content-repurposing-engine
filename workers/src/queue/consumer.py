@@ -16,12 +16,8 @@ from src.services.youtube_service import download_youtube_video
 from src.services.storage_service import storage_service
 from src.models.download_job import DownloadJobPayload
 from src.pipeline.download_handler import process_youtube_download
+from src.utils.api import get_auth_headers
 
-def get_auth_headers():
-    token = os.getenv("WORKER_API_TOKEN")
-    if token:
-        return {"Authorization": f"Bearer {token}"}
-    return {}
 
 async def update_remote_job_status(job_id: str, status: JobState, progress: int, failed_reason: str = None):
     """
