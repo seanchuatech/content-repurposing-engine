@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
-import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
+import { authGuard } from '../middleware/auth-guard';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   .use(authGuard)
@@ -14,7 +14,9 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
       const job = await db
         .select()
         .from(jobs)
-        .where(and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)))
+        .where(
+          and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)),
+        )
         .limit(1)
         .then((res) => res[0]);
 
@@ -30,9 +32,9 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
           .from(clips)
           .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
       }
-  
-        return { ...job, clips: resultClips };
-      },
+
+      return { ...job, clips: resultClips };
+    },
     {
       params: t.Object({ projectId: t.String() }),
     },
@@ -48,7 +50,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         .where(
           user!.role === 'admin'
             ? eq(jobs.id, id)
-            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId))
+            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -59,11 +61,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-          resultClips = await db
-            .select()
-            .from(clips)
-            .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
-        }
+        resultClips = await db
+          .select()
+          .from(clips)
+          .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
+      }
 
       return { ...job, clips: resultClips };
     },
@@ -88,7 +90,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
           .where(
             user!.role === 'admin'
               ? eq(jobs.id, id)
-              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId))
+              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
           )
           .returning()
           .then((res) => res[0]);

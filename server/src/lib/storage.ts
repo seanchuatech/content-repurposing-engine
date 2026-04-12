@@ -1,5 +1,5 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import path from 'node:path';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 export interface StorageAdapter {
   save(relativePath: string, file: File): Promise<void>;
@@ -19,7 +19,9 @@ export class S3StorageAdapter implements StorageAdapter {
   private bucket: string;
 
   constructor() {
-    this.s3 = new S3Client({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+    this.s3 = new S3Client({
+      region: process.env.AWS_REGION || 'ap-southeast-1',
+    });
     this.bucket = process.env.S3_MEDIA_BUCKET || 'content-engine-media';
   }
 

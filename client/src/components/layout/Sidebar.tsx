@@ -3,9 +3,9 @@ import {
   Film,
   FolderOpen,
   LayoutDashboard,
+  LogOut,
   Settings,
   Upload,
-  LogOut,
   User as UserIcon,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
@@ -28,7 +28,9 @@ export default function Sidebar() {
         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
           <Film className="w-6 h-6 text-white" />
         </div>
-        <span className="font-bold text-xl tracking-tight text-white">ClipEngine</span>
+        <span className="font-bold text-xl tracking-tight text-white">
+          ClipEngine
+        </span>
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -58,13 +60,15 @@ export default function Sidebar() {
                 <UserIcon className="w-5 h-5 text-indigo-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-zinc-100 truncate">{user.name || 'User'}</p>
+                <p className="text-sm font-semibold text-zinc-100 truncate">
+                  {user.name || 'User'}
+                </p>
                 <p className="text-xs text-zinc-500 truncate">{user.email}</p>
               </div>
             </div>
-            
+
             {user.role === 'user' && (
-              <button 
+              <button
                 type="button"
                 className="w-full py-2 mb-2 px-3 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors shadow-lg shadow-indigo-500/20 cursor-pointer"
               >
@@ -72,7 +76,7 @@ export default function Sidebar() {
               </button>
             )}
 
-            <button 
+            <button
               type="button"
               onClick={logout}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"

@@ -1,6 +1,7 @@
-import type { ProjectWithDetails, Job } from '../types/video';
+import type { Job, ProjectWithDetails } from '../types/video';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface UploadOptions {
   whisperModel?: string;
@@ -15,7 +16,7 @@ export interface YouTubeOptions extends UploadOptions {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('auth_token');
   const headers = new Headers(options.headers);
-  
+
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -26,7 +27,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'An unknown error occurred' }));
     throw new Error(error.error || error.message || 'Request failed');
   }
 
@@ -57,7 +60,7 @@ export async function getMe(token?: string) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   return request<any>('/auth/me', { headers });
 }
 
@@ -79,7 +82,11 @@ export async function deleteProject(id: string) {
 
 // --- UPLOAD ---
 
-export async function uploadVideo(projectId: string, file: File, options?: UploadOptions) {
+export async function uploadVideo(
+  projectId: string,
+  file: File,
+  options?: UploadOptions,
+) {
   const formData = new FormData();
   formData.append('video', file);
   formData.append('projectId', projectId);

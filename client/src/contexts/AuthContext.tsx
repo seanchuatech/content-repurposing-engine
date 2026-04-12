@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
 interface User {
@@ -21,9 +22,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('auth_token'),
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -63,7 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const subscriptionStatus = user?.subscriptionStatus || null;
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, subscriptionStatus, login, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        subscriptionStatus,
+        login,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

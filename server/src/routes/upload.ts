@@ -2,12 +2,12 @@ import path from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
-import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { jobs, projects, settings, videos } from '../db/schema';
 import { getDispatcher } from '../dispatcher';
 import { getStorage } from '../lib/storage';
+import { authGuard } from '../middleware/auth-guard';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
   .use(authGuard)
@@ -58,7 +58,9 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         await getStorage().save(relativePath, file);
 
         // Sanitize the original filename for the DB title
-        const sanitizedTitle = file.name.replace(/[^a-zA-Z0-9\s._-]/g, '').trim();
+        const sanitizedTitle = file.name
+          .replace(/[^a-zA-Z0-9\s._-]/g, '')
+          .trim();
 
         // 5. Create new Project
         const projectId = uuidv4();
@@ -67,7 +69,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           userId: user!.userId,
           title: `Project: ${sanitizedTitle}`,
         });
- 
+
         // 6. Create Video Entry
         const videoId = uuidv4();
         await db.insert(videos).values({
@@ -79,7 +81,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: file.type,
         });
 
-        let globalSettings = await db
+        const globalSettings = await db
           .select()
           .from(settings)
           .where(eq(settings.userId, user!.userId))
@@ -147,8 +149,9 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
     '/youtube',
     async ({ body, user, set }) => {
       const { url } = body;
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
-      
+      const youtubeRegex =
+        /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
+
       if (!url || !youtubeRegex.test(url)) {
         set.status = 400;
         return { error: 'Invalid YouTube URL' };
@@ -165,7 +168,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           userId: user!.userId,
           title: `YouTube Import: ${url}`,
         });
- 
+
         // Create Video Entry (filePath will be updated by worker after download)
         await db.insert(videos).values({
           id: videoId,
@@ -176,7 +179,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           mimeType: 'video/youtube',
         });
 
-        let globalSettings = await db
+        const globalSettings = await db
           .select()
           .from(settings)
           .where(eq(settings.userId, user!.userId))

@@ -1,11 +1,11 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
-import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs, projects, settings, videos } from '../db/schema';
 import { getDispatcher } from '../dispatcher';
+import { authGuard } from '../middleware/auth-guard';
 
 export const projectsRoutes = new Elysia({ prefix: '/projects' })
   .use(authGuard)
@@ -50,7 +50,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         jobs.llmModel,
       )
       .orderBy(desc(projects.createdAt));
- 
+
     // Map the Drizzle result to our ProjectWithDetails frontend interface cleanly
     return projectsWithDetails.map((row) => ({
       ...row.project,
@@ -95,7 +95,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         })
         .returning()
         .then((res) => res[0]);
- 
+
       return newProject;
     },
     {
@@ -129,10 +129,15 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
     async ({ params: { id }, body, user, set }) => {
       try {
         const clipId = uuidv4();
-        
+
         let targetUserId = user.userId;
         if (user.role === 'admin' && body.jobId) {
-          const job = await db.select().from(jobs).where(eq(jobs.id, body.jobId)).limit(1).then(res => res[0]);
+          const job = await db
+            .select()
+            .from(jobs)
+            .where(eq(jobs.id, body.jobId))
+            .limit(1)
+            .then((res) => res[0]);
           if (job) targetUserId = job.userId;
         }
 
@@ -165,7 +170,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           })
           .returning()
           .then((res) => res[0]);
- 
+
         return newClip;
       } catch (e) {
         console.error('Failed to create clip:', e);
@@ -199,7 +204,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         .where(
           user.role === 'admin'
             ? eq(clips.id, clipId)
-            : and(eq(clips.id, clipId), eq(clips.userId, user.userId))
+            : and(eq(clips.id, clipId), eq(clips.userId, user.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -230,12 +235,12 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
           .returning()
           .then((res) => res[0]);
- 
+
         if (!updatedClip) {
           set.status = 404;
           return { error: 'Clip not found' };
         }
- 
+
         return updatedClip;
       } catch (e) {
         console.error('Failed to update clip:', e);
@@ -272,11 +277,13 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           set.status = 404;
           return { error: 'Clip not found' };
         }
- 
+
         const video = await db
           .select()
           .from(videos)
-          .where(and(eq(videos.id, clip.videoId), eq(videos.userId, user.userId)))
+          .where(
+            and(eq(videos.id, clip.videoId), eq(videos.userId, user.userId)),
+          )
           .limit(1)
           .then((res) => res[0]);
         if (!video) {
@@ -284,13 +291,13 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           return { error: 'Source video not found' };
         }
 
-        let globalSettings = await db
+        const globalSettings = await db
           .select()
           .from(settings)
           .where(eq(settings.userId, user.userId))
           .limit(1)
           .then((res) => res[0]);
- 
+
         // Create a new job for the regeneration
         const jobId = uuidv4();
         await db.insert(jobs).values({
@@ -344,7 +351,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           .where(eq(videos.id, id))
           .returning()
           .then((res) => res[0]);
- 
+
         if (!updatedVideo) {
           set.status = 404;
           return { error: 'Video not found' };

@@ -1,19 +1,19 @@
 import { cors } from '@elysiajs/cors';
 import { staticPlugin } from '@elysiajs/static';
-import { rateLimit } from 'elysia-rate-limit';
 import { Elysia } from 'elysia';
-import { securityHeaders } from './middleware/security-headers';
+import { rateLimit } from 'elysia-rate-limit';
+import { authGuard } from './middleware/auth-guard';
 import { errorHandler } from './middleware/error-handler';
 import { logger } from './middleware/logger';
-import { authGuard } from './middleware/auth-guard';
+import { securityHeaders } from './middleware/security-headers';
 import { authRoutes } from './routes/auth';
 import { billingRoutes } from './routes/billing';
-import { webhookRoutes } from './routes/webhooks';
 import { downloadRoutes } from './routes/download';
 import { jobsRoutes } from './routes/jobs';
 import { projectsRoutes } from './routes/projects';
 import { settingsRoutes } from './routes/settings';
 import { uploadRoutes } from './routes/upload';
+import { webhookRoutes } from './routes/webhooks';
 
 const app = new Elysia()
   .use(cors())
@@ -27,7 +27,7 @@ const app = new Elysia()
     }),
   )
   .use(errorHandler)
-  .use(authGuard) // Register JWT and Derivations
+  .use(authGuard); // Register JWT and Derivations
 
 if (process.env.STORAGE_BACKEND !== 's3') {
   app.use(
@@ -35,7 +35,7 @@ if (process.env.STORAGE_BACKEND !== 's3') {
       assets: '../storage',
       prefix: '/storage',
     }),
-  )
+  );
 }
 
 app
@@ -49,13 +49,15 @@ app
     app
       .use(authRoutes) // Public auth routes (internal guards handle protection)
       .use(billingRoutes) // Billing routes (internal guards handle protection)
-      .guard({ isAuthenticated: true, requireSubscription: true }, (protectedApp) =>
-        protectedApp
-          .use(projectsRoutes)
-          .use(uploadRoutes)
-          .use(jobsRoutes)
-          .use(settingsRoutes)
-          .use(downloadRoutes),
+      .guard(
+        { isAuthenticated: true, requireSubscription: true },
+        (protectedApp) =>
+          protectedApp
+            .use(projectsRoutes)
+            .use(uploadRoutes)
+            .use(jobsRoutes)
+            .use(settingsRoutes)
+            .use(downloadRoutes),
       ),
   );
 

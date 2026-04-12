@@ -275,9 +275,7 @@ export default function DownloaderPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(
-                            download.status,
-                          )}
+                          {getStatusIcon(download.status)}
                           <div className="flex flex-col">
                             <span className="font-medium text-zinc-300 capitalize text-xs">
                               {download.status.toLowerCase()}

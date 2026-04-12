@@ -9,14 +9,20 @@ export class ECSDispatcher implements JobDispatcher {
   private ecs: ECSClient;
 
   constructor() {
-    this.ecs = new ECSClient({ region: process.env.AWS_REGION || 'ap-southeast-1' });
+    this.ecs = new ECSClient({
+      region: process.env.AWS_REGION || 'ap-southeast-1',
+    });
   }
 
-  async dispatchVideoProcessing(payload: VideoProcessingPayload): Promise<void> {
+  async dispatchVideoProcessing(
+    payload: VideoProcessingPayload,
+  ): Promise<void> {
     await this.runTask('video-processing', payload);
   }
 
-  async dispatchYoutubeDownload(payload: YoutubeDownloadPayload): Promise<void> {
+  async dispatchYoutubeDownload(
+    payload: YoutubeDownloadPayload,
+  ): Promise<void> {
     await this.runTask('youtube-download', payload);
   }
 
@@ -47,7 +53,9 @@ export class ECSDispatcher implements JobDispatcher {
 
     try {
       const response = await this.ecs.send(command);
-      console.log(`[ECSDispatcher] Task started: ${response.tasks?.[0]?.taskArn}`);
+      console.log(
+        `[ECSDispatcher] Task started: ${response.tasks?.[0]?.taskArn}`,
+      );
     } catch (error) {
       console.error(`[ECSDispatcher] Failed to run task:`, error);
       throw error;

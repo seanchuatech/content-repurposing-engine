@@ -24,21 +24,29 @@ export class LocalDispatcher implements JobDispatcher {
     return jwt;
   }
 
-  async dispatchVideoProcessing(payload: VideoProcessingPayload): Promise<void> {
-    console.log(`[LocalDispatcher] Dispatching video processing job ${payload.jobId}`);
-    
+  async dispatchVideoProcessing(
+    payload: VideoProcessingPayload,
+  ): Promise<void> {
+    console.log(
+      `[LocalDispatcher] Dispatching video processing job ${payload.jobId}`,
+    );
+
     await this.spawnWorker('video-processing', payload);
   }
 
-  async dispatchYoutubeDownload(payload: YoutubeDownloadPayload): Promise<void> {
-    console.log(`[LocalDispatcher] Dispatching youtube download job ${payload.downloadId}`);
+  async dispatchYoutubeDownload(
+    payload: YoutubeDownloadPayload,
+  ): Promise<void> {
+    console.log(
+      `[LocalDispatcher] Dispatching youtube download job ${payload.downloadId}`,
+    );
 
     await this.spawnWorker('youtube-download', payload);
   }
 
   private async spawnWorker(mode: string, payload: any) {
     const token = await this.generateWorkerToken();
-    
+
     const workerProcess = spawn('uv', ['run', 'src/main.py'], {
       cwd: this.workersPath,
       stdio: 'inherit',

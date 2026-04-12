@@ -1,9 +1,9 @@
+import { eq } from 'drizzle-orm';
 import { Elysia } from 'elysia';
-import { authGuard } from '../middleware/auth-guard';
-import { stripe } from '../lib/stripe';
 import { db } from '../db/client';
 import { subscriptions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { stripe } from '../lib/stripe';
+import { authGuard } from '../middleware/auth-guard';
 
 export const billingRoutes = new Elysia({ prefix: '/billing' })
   .use(authGuard)

@@ -2,10 +2,10 @@ import path from 'node:path';
 import { and, desc, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
-import { authGuard } from '../middleware/auth-guard';
 import { db } from '../db/client';
 import { downloads } from '../db/schema';
 import { getDispatcher } from '../dispatcher';
+import { authGuard } from '../middleware/auth-guard';
 
 export const downloadRoutes = new Elysia({ prefix: '/download' })
   .use(authGuard)
@@ -22,7 +22,8 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   .post(
     '/',
     async ({ body, user, set }) => {
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
+      const youtubeRegex =
+        /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
       if (!body.url || !youtubeRegex.test(body.url)) {
         set.status = 400;
         return { error: 'Invalid YouTube URL' };
@@ -74,9 +75,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
     const record = await db
       .select()
       .from(downloads)
-      .where(
-        and(eq(downloads.id, id), eq(downloads.userId, user!.userId))
-      )
+      .where(and(eq(downloads.id, id), eq(downloads.userId, user!.userId)))
       .limit(1)
       .then((res) => res[0]);
     if (!record) {
@@ -130,9 +129,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
     const record = await db
       .select()
       .from(downloads)
-      .where(
-        and(eq(downloads.id, id), eq(downloads.userId, user!.userId))
-      )
+      .where(and(eq(downloads.id, id), eq(downloads.userId, user!.userId)))
       .limit(1)
       .then((res) => res[0]);
     if (!record || !record.filePath) {
