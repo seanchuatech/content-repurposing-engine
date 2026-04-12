@@ -25,7 +25,7 @@ resource "aws_cloudwatch_log_group" "api" {
 
 resource "aws_cloudwatch_log_group" "worker" {
   name              = "/ecs/${local.name}-worker"
-  retention_in_days = 7 # Workers are ephemeral; keep logs shorter
+  retention_in_days = 7 # Workers are ephemeral - keep logs shorter
 }
 
 # ─── IAM: API Task Role (can call ecs:RunTask to launch workers) ──────────────

@@ -13,14 +13,17 @@ terraform {
     region         = "ap-southeast-1"
     dynamodb_table = "content-engine-tflock"
     encrypt        = true
+    profile        = "content-repurposing-engine"
   }
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = "content-repurposing-engine"
 }
 
 provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+  alias   = "us_east_1"
+  region  = "us-east-1"
+  profile = "content-repurposing-engine"
 }

@@ -70,7 +70,6 @@ module "secrets" {
   environment  = var.environment
 
   jwt_secret            = var.jwt_secret
-  database_url          = module.database.database_url
   stripe_secret_key     = var.stripe_secret_key
   stripe_webhook_secret = var.stripe_webhook_secret
   stripe_price_id       = var.stripe_price_id
@@ -78,6 +77,7 @@ module "secrets" {
   gemini_api_key        = var.gemini_api_key
   google_client_id      = var.google_client_id
   google_client_secret  = var.google_client_secret
+  database_url          = var.database_url
 }
 
 module "compute" {

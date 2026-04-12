@@ -111,7 +111,7 @@ resource "aws_security_group" "api" {
 # Worker: No inbound, full outbound (for Groq/Gemini API calls)
 resource "aws_security_group" "worker" {
   name        = "${local.name}-sg-worker"
-  description = "Ephemeral worker — outbound only"
+  description = "Ephemeral worker - outbound only"
   vpc_id      = aws_vpc.main.id
 
   egress {
