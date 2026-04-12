@@ -1,10 +1,11 @@
 import asyncio
-import os
 import json
+import os
 import sys
 
 from src.logger import logger
 from src.queue.consumer import process_video_job, process_youtube_download_job
+
 
 async def main():
     mode = os.getenv("JOB_MODE")
@@ -24,11 +25,11 @@ async def main():
         else:
             logger.error(f"Unknown job mode: {mode}")
             sys.exit(1)
-        
+
         logger.info("Job completed successfully.")
         sys.exit(0)
-    except Exception as e:
-        logger.exception(f"Job failed:")
+    except Exception:
+        logger.exception("Job failed:")
         sys.exit(1)
 
 

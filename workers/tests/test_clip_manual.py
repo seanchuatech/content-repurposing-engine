@@ -5,19 +5,20 @@ import sys
 # Add workers/src to path
 sys.path.append(os.path.join(os.getcwd(), "workers"))
 
-from src.pipeline.clip import extract_clip
 from src.models.clip import Clip
+from src.pipeline.clip import extract_clip
+
 
 async def test_manual_clipping():
     # Path relative to the script execution point (if run from project root)
     # But extract_clip uses config.PROJECT_ROOT which is absolute.
     # So we should pass a path relative to PROJECT_ROOT to extract_clip.
     video_path_rel = "storage/uploads/talking_test.mp4"
-    
+
     # Check if file exists relative to project root
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     full_video_path = os.path.join(project_root, video_path_rel)
-    
+
     if not os.path.exists(full_video_path):
         print(f"Error: video file not found at {full_video_path}")
         return
@@ -34,11 +35,11 @@ async def test_manual_clipping():
     )
 
     print(f"Testing clip extraction for job {job_id}...")
-    
+
     try:
         clip_path_rel = await extract_clip(video_path_rel, clip)
         print(f"Clip extracted to: {clip_path_rel}")
-        
+
         full_path = os.path.join(os.getcwd(), clip_path_rel)
         if os.path.exists(full_path):
             size = os.path.getsize(full_path)

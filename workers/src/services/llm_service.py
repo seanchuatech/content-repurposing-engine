@@ -1,24 +1,32 @@
 import json
-import httpx
+
 from google import genai
 from openai import OpenAI
+
 from src.config import config
 from src.logger import logger
+
 
 class LLMService:
     def __init__(self):
         self.backend = config.LLM_BACKEND
         self.model = config.LLM_MODEL
-        
+
         self.openai_client = None
         if self.backend == "openai":
             self.openai_client = OpenAI(api_key=config.OPENAI_API_KEY)
-            
+
         self.gemini_client = None
         if config.GEMINI_API_KEY:
             self.gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
 
-    async def generate_json(self, prompt: str, system_prompt: str = "You are a helpful assistant.", backend: str = None, model: str = None) -> dict:
+    async def generate_json(
+        self,
+        prompt: str,
+        system_prompt: str = "You are a helpful assistant.",
+        backend: str = None,
+        model: str = None,
+    ) -> dict:
         """
         Generates a JSON response from the configured LLM backend.
         """
@@ -32,9 +40,11 @@ class LLMService:
         else:
             raise ValueError(f"Unsupported LLM backend: {target_backend}")
 
-    async def _generate_openai(self, prompt: str, system_prompt: str, model: str) -> dict:
+    async def _generate_openai(
+        self, prompt: str, system_prompt: str, model: str
+    ) -> dict:
         logger.info(f"Generating with OpenAI ({model})...")
-        
+
         if not self.openai_client:
             self.openai_client = OpenAI(api_key=config.OPENAI_API_KEY)
 
@@ -53,21 +63,23 @@ class LLMService:
             logger.error(f"OpenAI generation failed: {e}")
             raise
 
-    async def _generate_gemini(self, prompt: str, system_prompt: str, model: str) -> dict:
+    async def _generate_gemini(
+        self, prompt: str, system_prompt: str, model: str
+    ) -> dict:
         logger.info(f"Generating with Gemini ({model})...")
-        
+
         if not self.gemini_client:
             # Try to initialize if key was added later
             if config.GEMINI_API_KEY:
                 self.gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
             else:
                 raise ValueError("GEMINI_API_KEY is not set in configuration.")
-        
+
         try:
             # Use run_in_executor since the google-genai library is synchronous
             import asyncio
             loop = asyncio.get_event_loop()
-            
+
             # Use the new SDK's structure
             def call_gemini():
                 return self.gemini_client.models.generate_content(
@@ -80,7 +92,7 @@ class LLMService:
                 )
 
             response = await loop.run_in_executor(None, call_gemini)
-            
+
             # The response text should be valid JSON
             return json.loads(response.text)
         except Exception as e:

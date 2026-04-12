@@ -1,19 +1,24 @@
 import os
+
 import boto3
+
 from src.config import config
 from src.logger import logger
+
 
 class StorageService:
     def __init__(self):
         self.backend = config.STORAGE_BACKEND
         if self.backend == "s3":
-            self.s3 = boto3.client('s3', region_name=os.getenv("AWS_REGION", "ap-southeast-1"))
+            self.s3 = boto3.client(
+                "s3", region_name=os.getenv("AWS_REGION", "ap-southeast-1")
+            )
             self.bucket = os.getenv("S3_MEDIA_BUCKET", "content-engine-media")
-    
+
     def download_if_s3(self, relative_path: str) -> str:
         if self.backend == "local":
             return os.path.join(config.PROJECT_ROOT, relative_path)
-        
+
         # For S3, download to a local temp path
         local_path = os.path.join(config.PROJECT_ROOT, relative_path)
         os.makedirs(os.path.dirname(local_path), exist_ok=True)

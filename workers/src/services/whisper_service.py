@@ -8,6 +8,7 @@ from groq import Groq
 from src.config import config
 from src.logger import logger
 
+
 def _extract_audio_for_groq(video_path: str) -> str:
     """
     Extracts audio from video and compresses to FLAC (16kHz mono) to stay
@@ -29,18 +30,20 @@ def _extract_audio_for_groq(video_path: str) -> str:
     logger.info(f"Extracting audio for Groq: {' '.join(cmd)}")
     try:
         subprocess.run(cmd, check=True, capture_output=True, timeout=300)
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("FFmpeg audio extraction timed out (300s limit)")
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError("FFmpeg audio extraction timed out (300s limit)") from e
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg audio extraction failed: {e.stderr.decode()}")
+        raise RuntimeError(
+            f"FFmpeg audio extraction failed: {e.stderr.decode()}"
+        ) from e
 
     file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
     logger.info(f"Extracted audio: {file_size_mb:.1f} MB")
 
     if file_size_mb > 25:
         logger.warning(
-            f"Audio file is {file_size_mb:.1f} MB, exceeding Groq's 25MB free-tier limit. "
-            "Transcription may fail."
+            f"Audio file is {file_size_mb:.1f} MB, exceeding Groq's 25MB free-tier "
+            "limit. Transcription may fail."
         )
 
     return output_path
@@ -52,8 +55,11 @@ def _normalize_groq_response(groq_result) -> dict:
     expected by downstream pipeline stages.
     """
     # groq_result could be a dict or an object depending on the SDK version
-    segments_data = groq_result.get("segments", []) if isinstance(groq_result, dict) else (getattr(groq_result, "segments", []) or [])
-    
+    if isinstance(groq_result, dict):
+        segments_data = groq_result.get("segments", [])
+    else:
+        segments_data = getattr(groq_result, "segments", []) or []
+
     segments = []
     for seg in segments_data:
         # seg could be a dict
@@ -93,8 +99,12 @@ def _normalize_groq_response(groq_result) -> dict:
                 ]
             segments.append(segment)
 
-    text_val = groq_result.get("text", "") if isinstance(groq_result, dict) else getattr(groq_result, "text", "")
-    lang_val = groq_result.get("language", "en") if isinstance(groq_result, dict) else getattr(groq_result, "language", "en")
+    if isinstance(groq_result, dict):
+        text_val = groq_result.get("text", "")
+        lang_val = groq_result.get("language", "en")
+    else:
+        text_val = getattr(groq_result, "text", "")
+        lang_val = getattr(groq_result, "language", "en")
 
     return {
         "text": text_val,
@@ -133,7 +143,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
 
         # 3. Normalize to pipeline format
         result = _normalize_groq_response(transcription)
-        logger.info(f"Groq transcription complete. {len(result.get('segments', []))} segments found.")
+        num_segments = len(result.get("segments", []))
+        logger.info(f"Groq transcription complete. {num_segments} segments found.")
         return result
 
     finally:

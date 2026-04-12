@@ -1,21 +1,25 @@
 import json
 import os
+
 from src.config import config
 from src.logger import logger
 from src.models.clip import Clip
 from src.services.llm_service import llm_service
 
 SYSTEM_PROMPT = """
-You are an expert video editor and social media strategist. 
-Your task is to analyze a video transcript and identify the most "viral" moments suitable for short-form clips (TikTok, Reels, Shorts).
+You are an expert video editor and social media strategist.
+Your task is to analyze a video transcript and identify the most "viral"
+moments suitable for short-form clips (TikTok, Reels, Shorts).
 
 For each viral moment, you must provide:
+1. Start and End timestamps (seconds).
 1. Start and End timestamps (seconds).
 2. A hook-driven, catchy title.
 3. A virality score (1-100).
 4. A brief explanation of why this moment is engaging.
 
-Output your response as a JSON object with a "clips" key containing an array of these objects.
+Output your response as a JSON object with a "clips" key
+containing an array of these objects.
 """
 
 PROMPT_TEMPLATE = """
@@ -33,19 +37,27 @@ JSON output format:
       "end_time": 45.0,
       "title": "The Secret to Viral Growth",
       "virality_score": 92,
-      "explanation": "Strong hook with a counter-intuitive insight that challenges common beliefs."
+      "explanation": (
+          "Strong hook with a counter-intuitive insight "
+          "that challenges common beliefs."
+      )
     }}
   ]
 }}
 """
 
-async def analyze_transcript(job_id: str, transcript: dict, llm_backend: str = None, llm_model: str = None) -> list[Clip]:
+async def analyze_transcript(
+    job_id: str,
+    transcript: dict,
+    llm_backend: str = None,
+    llm_model: str = None,
+) -> list[Clip]:
     logger.info(f"Analyzing transcript for viral moments (Job: {job_id})...")
-    
+
     # 1. Extract text from transcript
     # Whisper format usually has a 'text' key for the full transcript
     transcript_text = transcript.get("text", "")
-    
+
     # If text is too long, we might need to truncate or chunk (LLM context window)
     # For now, let's take the first 10k characters which is plenty for 15-20 mins
     if len(transcript_text) > 12000:
@@ -54,11 +66,13 @@ async def analyze_transcript(job_id: str, transcript: dict, llm_backend: str = N
 
     # 2. Call LLM
     prompt = PROMPT_TEMPLATE.format(transcript_text=transcript_text)
-    
+
     try:
-        result = await llm_service.generate_json(prompt, SYSTEM_PROMPT, backend=llm_backend, model=llm_model)
+        result = await llm_service.generate_json(
+            prompt, SYSTEM_PROMPT, backend=llm_backend, model=llm_model
+        )
         raw_clips = result.get("clips", [])
-        
+
         clips = []
         for i, rc in enumerate(raw_clips):
             clip = Clip(
@@ -71,22 +85,29 @@ async def analyze_transcript(job_id: str, transcript: dict, llm_backend: str = N
                 explanation=rc.get("explanation", "")
             )
             clips.append(clip)
-            
+
         # 3. Save analysis to temp storage
         temp_dir = os.path.join(config.PROJECT_ROOT, "storage", "temp", job_id)
         os.makedirs(temp_dir, exist_ok=True)
         analysis_path = os.path.join(temp_dir, "analysis.json")
-        
+
         with open(analysis_path, "w") as f:
             json.dump(result, f, indent=2)
-            
-        logger.info(f"Analysis complete. Identified {len(clips)} clips. Saved to {analysis_path}")
+
+        logger.info(
+            f"Analysis complete. Identified {len(clips)} clips. "
+            f"Saved to {analysis_path}"
+        )
         return clips
 
     except Exception as e:
         logger.error(f"Transcript analysis failed: {e}")
-        # Fallback to mocked results if AI fails, so the pipeline doesn't break during dev
-        logger.warning("AI Analysis failed. Falling back to mocked results for pipeline continuity.")
+        # Fallback to mocked results if AI fails,
+        # so the pipeline doesn't break during dev
+        logger.warning(
+            "AI Analysis failed. Falling back to mocked results "
+            "for pipeline continuity."
+        )
         return [
             Clip(
                 id=f"{job_id}-fallback-1",
@@ -95,6 +116,9 @@ async def analyze_transcript(job_id: str, transcript: dict, llm_backend: str = N
                 end_time=20.0,
                 title="Insightful Moment (AI Fallback)",
                 virality_score=75,
-                explanation="Automatically identified segment (AI analysis was unavailable)."
+                explanation=(
+                    "Automatically identified segment "
+                    "(AI analysis was unavailable)."
+                )
             )
         ]

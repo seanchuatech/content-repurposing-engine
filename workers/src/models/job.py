@@ -1,7 +1,9 @@
 from enum import Enum
+
 from pydantic import BaseModel
 
-class JobState(str, Enum):
+
+class JobState(str, Enum):  # noqa: UP042
     PENDING = "PENDING"
     TRANSCRIBING = "TRANSCRIBING"
     ANALYZING = "ANALYZING"

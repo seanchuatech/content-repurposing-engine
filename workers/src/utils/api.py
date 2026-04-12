@@ -1,5 +1,6 @@
 import os
 
+
 def get_auth_headers():
     """
     Returns the authorization headers required to talk to the server API.

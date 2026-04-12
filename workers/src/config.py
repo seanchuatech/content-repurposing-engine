@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 # Load .env from the project root
@@ -17,7 +18,7 @@ class Config:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     DATABASE_URL = os.getenv("DATABASE_URL")
     MAX_VIDEO_DURATION_SECONDS = int(os.getenv("MAX_VIDEO_DURATION_SECONDS", 900))
-    
+
     SERVER_URL = os.getenv("SERVER_URL", "http://localhost:3000/api")
 
     if not GROQ_API_KEY:
