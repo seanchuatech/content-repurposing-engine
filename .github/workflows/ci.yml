@@ -34,7 +34,6 @@ jobs:
       - name: Type check (server)
         working-directory: server
         run: bun run tsc --noEmit
-        continue-on-error: true  # Remove once tsc is fully green
 
       - name: Type check (shared-types)
         working-directory: packages/shared-types
@@ -90,7 +89,6 @@ jobs:
       - name: Type check with Pyright
         working-directory: workers
         run: uv run pyright .
-        continue-on-error: true  # Remove once Pyright is fully green
 
   # ── Docker Build Validation ───────────────────────────────────────────────────
   ci-docker:
