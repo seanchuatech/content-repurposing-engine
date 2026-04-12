@@ -25,7 +25,7 @@ export default function UploadPage() {
   const [whisperModel, setWhisperModel] = useState('base');
   const [useYouTubeSubtitles, setUseYouTubeSubtitles] = useState(true);
   const [manualSegments, setManualSegments] = useState<
-    { start: string; end: string; title: string }[]
+    { id: string; start: string; end: string; title: string }[]
   >([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -115,7 +115,7 @@ export default function UploadPage() {
             : undefined,
       };
 
-      let result: { projectId: string };
+      let result: { jobId: string; projectId: string };
       if (uploadType === 'file' && file) {
         result = await uploadVideo(file, options);
       } else {
@@ -298,7 +298,7 @@ export default function UploadPage() {
                 </p>
                 <p className="text-sm text-zinc-500">
                   {uploadType === 'file'
-                    ? `${(file?.size / (1024 * 1024)).toFixed(2)} MB`
+                    ? `${((file?.size ?? 0) / (1024 * 1024)).toFixed(2)} MB`
                     : 'YouTube Video'}
                 </p>
               </div>

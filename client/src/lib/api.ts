@@ -86,13 +86,11 @@ export async function deleteProject(id: string): Promise<{ success: boolean }> {
 // --- UPLOAD ---
 
 export async function uploadVideo(
-  projectId: string,
   file: File,
   options?: UploadOptions,
-): Promise<{ jobId: string }> {
+): Promise<{ jobId: string; projectId: string }> {
   const formData = new FormData();
-  formData.append('video', file);
-  formData.append('projectId', projectId);
+  formData.append('file', file);
 
   if (options?.whisperModel) {
     formData.append('whisperModel', options.whisperModel);
@@ -102,7 +100,7 @@ export async function uploadVideo(
     formData.append('manualSegments', JSON.stringify(options.manualSegments));
   }
 
-  return request<{ jobId: string }>('/upload', {
+  return request<{ jobId: string; projectId: string }>('/upload', {
     method: 'POST',
     body: formData,
   });
@@ -111,8 +109,8 @@ export async function uploadVideo(
 export async function importFromYouTube(
   url: string,
   options?: YouTubeOptions,
-): Promise<{ jobId: string }> {
-  return request<{ jobId: string }>('/upload/youtube', {
+): Promise<{ jobId: string; projectId: string }> {
+  return request<{ jobId: string; projectId: string }>('/upload/youtube', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

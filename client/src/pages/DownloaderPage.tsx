@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { getDownloadFileUrl, listDownloads, startDownload } from '../lib/api';
+import { listDownloads, startDownload } from '../lib/api';
 
 type DownloadRecord = {
   id: string;

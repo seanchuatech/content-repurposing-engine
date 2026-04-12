@@ -1,14 +1,7 @@
 import type React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../lib/api';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-  subscriptionStatus?: string;
-}
+import type { User } from '../types/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   subscriptionStatus: string | null;
   login: (token: string, user: User) => void;
+  register: (token: string, user: User) => void;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -36,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (token) {
         try {
           // Verify token by getting current user
-          const userData = await api.getMe(token);
+          const userData = await api.getMe();
           setUser(userData);
         } catch (error) {
           console.error('Failed to initialize auth:', error);
@@ -50,6 +44,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [token]);
 
   const login = (newToken: string, userData: User) => {
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(userData);
+  };
+
+  const register = (newToken: string, userData: User) => {
     localStorage.setItem('auth_token', newToken);
     setToken(newToken);
     setUser(userData);
@@ -75,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isLoading,
         subscriptionStatus,
         login,
+        register,
         logout,
         updateUser,
       }}

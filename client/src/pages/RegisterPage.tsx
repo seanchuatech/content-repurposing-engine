@@ -12,7 +12,7 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,12 +21,9 @@ const RegisterPage: React.FC = () => {
     setError(null);
 
     try {
-      await registerApi({ name, email, password });
-      // After registration, we usually want to redirect to login or auto-login
-      // For now, let's just redirect to login
-      navigate('/login', {
-        state: { message: 'Registration successful! Please sign in.' },
-      });
+      const response = await registerApi({ name, email, password });
+      register(response.token, response.user);
+      navigate('/');
     } catch (err) {
       const errorMessage =
         err instanceof Error
