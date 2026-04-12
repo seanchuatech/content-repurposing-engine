@@ -9,7 +9,10 @@ const guard = new Elysia({ name: 'authGuard' })
     isAuthenticated(value: boolean) {
       if (!value) return;
       return {
-        beforeHandle({ user, set }: any) {
+        beforeHandle({
+          user,
+          set,
+        }: { user: unknown; set: { status?: number | string } }) {
           console.log('MACRO EXECUTED! User: ', user);
           if (!user) {
             set.status = 401;

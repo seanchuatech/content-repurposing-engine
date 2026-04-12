@@ -27,7 +27,7 @@ export const AuthService = {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email) as any)
+      .where(eq(users.email, email))
       .limit(1);
     return user;
   },
@@ -40,7 +40,7 @@ export const AuthService = {
         and(
           eq(authProviders.provider, provider),
           eq(authProviders.providerUserId, providerUserId),
-        ) as any,
+        ),
       )
       .limit(1);
 
@@ -49,7 +49,7 @@ export const AuthService = {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, authProvider.userId) as any)
+      .where(eq(users.id, authProvider.userId))
       .limit(1);
 
     return user;
@@ -90,7 +90,7 @@ export const AuthService = {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, id) as any)
+      .where(eq(users.id, id))
       .limit(1);
     return user;
   },
@@ -99,14 +99,14 @@ export const AuthService = {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, userId) as any)
+      .where(eq(users.id, userId))
       .limit(1);
     if (!user) return null;
 
     const [sub] = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, userId) as any)
+      .where(eq(subscriptions.userId, userId))
       .limit(1);
 
     return {

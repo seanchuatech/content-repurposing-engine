@@ -252,7 +252,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   )
   .get(
     '/me',
-    async ({ user, set }: { user: any; set: any }) => {
+    async ({
+      user,
+      set,
+    }: { user: JWTPayload | null; set: { status?: number | string } }) => {
       if (!user) {
         set.status = 401;
         return { error: 'Unauthorized - No user found', code: 'UNAUTHORIZED' };

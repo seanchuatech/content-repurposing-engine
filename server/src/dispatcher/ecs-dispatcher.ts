@@ -26,7 +26,10 @@ export class ECSDispatcher implements JobDispatcher {
     await this.runTask('youtube-download', payload);
   }
 
-  private async runTask(mode: string, payload: any) {
+  private async runTask(
+    mode: string,
+    payload: VideoProcessingPayload | YoutubeDownloadPayload,
+  ) {
     const command = new RunTaskCommand({
       cluster: process.env.ECS_CLUSTER_ARN,
       taskDefinition: process.env.WORKER_TASK_DEF_ARN,
@@ -57,7 +60,7 @@ export class ECSDispatcher implements JobDispatcher {
         `[ECSDispatcher] Task started: ${response.tasks?.[0]?.taskArn}`,
       );
     } catch (error) {
-      console.error(`[ECSDispatcher] Failed to run task:`, error);
+      console.error('[ECSDispatcher] Failed to run task:', error);
       throw error;
     }
   }

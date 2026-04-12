@@ -1,4 +1,6 @@
-import type { Job, ProjectWithDetails } from '../types/video';
+import type { AuthResponse, User } from '../types/auth';
+import type { Download } from '../types/download';
+import type { Clip, Job, ProjectWithDetails } from '../types/video';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -38,30 +40,31 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // --- AUTH ---
 
-export async function login(data: any) {
-  return request<any>('/auth/login', {
+export async function login(data: {
+  email: string;
+  password?: string;
+}): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 }
 
-export async function register(data: any) {
-  return request<any>('/auth/register', {
+export async function register(data: {
+  email: string;
+  password?: string;
+  name?: string;
+}): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 }
 
-export async function getMe(token?: string) {
-  // If token is provided, use it explicitly (useful during init)
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  return request<any>('/auth/me', { headers });
+export async function getMe(): Promise<User> {
+  return request<User>('/auth/me');
 }
 
 // --- PROJECTS ---
@@ -74,8 +77,8 @@ export async function getProject(id: string): Promise<ProjectWithDetails> {
   return request<ProjectWithDetails>(`/projects/${id}`);
 }
 
-export async function deleteProject(id: string) {
-  return request<any>(`/projects/${id}`, {
+export async function deleteProject(id: string): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/projects/${id}`, {
     method: 'DELETE',
   });
 }
@@ -86,7 +89,7 @@ export async function uploadVideo(
   projectId: string,
   file: File,
   options?: UploadOptions,
-) {
+): Promise<{ jobId: string }> {
   const formData = new FormData();
   formData.append('video', file);
   formData.append('projectId', projectId);
@@ -99,14 +102,17 @@ export async function uploadVideo(
     formData.append('manualSegments', JSON.stringify(options.manualSegments));
   }
 
-  return request<any>('/upload', {
+  return request<{ jobId: string }>('/upload', {
     method: 'POST',
     body: formData,
   });
 }
 
-export async function importFromYouTube(url: string, options?: YouTubeOptions) {
-  return request<any>('/upload/youtube', {
+export async function importFromYouTube(
+  url: string,
+  options?: YouTubeOptions,
+): Promise<{ jobId: string }> {
+  return request<{ jobId: string }>('/upload/youtube', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -131,36 +137,41 @@ export async function getJobByProject(projectId: string): Promise<Job> {
 export async function updateClip(
   clipId: string,
   data: { startTime?: number; endTime?: number; title?: string },
-) {
-  return request<any>(`/projects/clips/${clipId}`, {
+): Promise<Clip> {
+  return request<Clip>(`/projects/clips/${clipId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 }
 
-export async function regenerateClip(clipId: string) {
-  return request<any>(`/projects/clips/${clipId}/regenerate`, {
+export async function regenerateClip(
+  clipId: string,
+): Promise<{ jobId: string }> {
+  return request<{ jobId: string }>(`/projects/clips/${clipId}/regenerate`, {
     method: 'POST',
   });
 }
 
 // --- DOWNLOADS ---
 
-export async function listDownloads() {
-  return request<any[]>('/download');
+export async function listDownloads(): Promise<Download[]> {
+  return request<Download[]>('/download');
 }
 
-export async function startDownload(url: string, quality: string) {
-  return request<any>('/download', {
+export async function startDownload(
+  url: string,
+  quality: string,
+): Promise<Download> {
+  return request<Download>('/download', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url, quality }),
   });
 }
 
-export async function getDownload(id: string) {
-  return request<any>(`/download/${id}`);
+export async function getDownload(id: string): Promise<Download> {
+  return request<Download>(`/download/${id}`);
 }
 
 export function getDownloadFileUrl(id: string) {

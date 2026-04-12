@@ -16,9 +16,13 @@ const PricingPage: React.FC = () => {
     try {
       const { url } = await api.createCheckoutSession(token);
       window.location.href = url;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create checkout session:', err);
-      setError(err.message || 'Failed to initiate checkout. Please try again.');
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to initiate checkout. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +64,7 @@ const PricingPage: React.FC = () => {
             </h4>
             <div className="h-px flex-auto bg-slate-800" />
           </div>
-          <ul
-            role="list"
-            className="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-slate-300 sm:grid-cols-2 sm:gap-6"
-          >
+          <ul className="mt-8 grid grid-cols-1 gap-4 text-sm leading-6 text-slate-300 sm:grid-cols-2 sm:gap-6">
             <li className="flex gap-x-3">
               <Check className="h-6 w-5 flex-none text-indigo-400" />
               Unlimited AI Transcriptions
@@ -106,6 +107,7 @@ const PricingPage: React.FC = () => {
               </p>
               {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
               <button
+                type="button"
                 onClick={handleSubscribe}
                 disabled={isLoading || isSubscribed}
                 className={`mt-10 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 transition-all ${
@@ -116,7 +118,7 @@ const PricingPage: React.FC = () => {
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Processing...
                   </div>
                 ) : isSubscribed ? (

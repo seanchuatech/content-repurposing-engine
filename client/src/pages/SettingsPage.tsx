@@ -206,6 +206,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={isSubscribed ? handlePortal : handleUpgrade}
               disabled={billingLoading}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50"
@@ -230,10 +231,14 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="transcription-backend"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Backend
                   </label>
                   <select
+                    id="transcription-backend"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors opacity-70 cursor-not-allowed"
                     value="groq"
                     disabled
@@ -243,17 +248,21 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="transcription-model"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Model
                   </label>
                   <select
+                    id="transcription-model"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.whisperModel}
                     onChange={(e) =>
                       setSettings({ ...settings, whisperModel: e.target.value })
                     }
                   >
-                    {(WHISPER_MODELS['groq'] || []).map((model) => (
+                    {(WHISPER_MODELS.groq || []).map((model) => (
                       <option key={model.value} value={model.value}>
                         {model.label}
                       </option>
@@ -272,10 +281,14 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="llm-provider"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     LLM Provider
                   </label>
                   <select
+                    id="llm-provider"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.llmBackend}
                     onChange={(e) =>
@@ -290,10 +303,14 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="llm-model"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Model Name
                   </label>
                   <select
+                    id="llm-model"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.llmModel}
                     onChange={(e) =>
@@ -304,7 +321,7 @@ export default function SettingsPage() {
                       LLM_MODELS[
                         settings.llmBackend as keyof typeof LLM_MODELS
                       ] || []
-                    ).map((model: any) => (
+                    ).map((model: { value: string; label: string }) => (
                       <option key={model.value} value={model.value}>
                         {model.label}
                       </option>

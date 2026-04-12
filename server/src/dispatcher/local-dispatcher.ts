@@ -15,7 +15,7 @@ export class LocalDispatcher implements JobDispatcher {
   }
 
   private async generateWorkerToken(): Promise<string> {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
     const jwt = await new SignJWT({ userId: 'worker', role: 'admin' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -44,7 +44,10 @@ export class LocalDispatcher implements JobDispatcher {
     await this.spawnWorker('youtube-download', payload);
   }
 
-  private async spawnWorker(mode: string, payload: any) {
+  private async spawnWorker(
+    mode: string,
+    payload: VideoProcessingPayload | YoutubeDownloadPayload,
+  ) {
     const token = await this.generateWorkerToken();
 
     const workerProcess = spawn('uv', ['run', 'src/main.py'], {
@@ -63,7 +66,7 @@ export class LocalDispatcher implements JobDispatcher {
     workerProcess.unref();
 
     workerProcess.on('error', (err) => {
-      console.error(`[LocalDispatcher] Failed to spawn worker:`, err);
+      console.error('[LocalDispatcher] Failed to spawn worker:', err);
     });
   }
 }

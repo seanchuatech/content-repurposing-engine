@@ -4,6 +4,7 @@ import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
 import { authGuard } from '../middleware/auth-guard';
+import { JWTPayload } from '../types/auth';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   .use(authGuard)
@@ -15,7 +16,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         .select()
         .from(jobs)
         .where(
-          and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)),
+          and(eq(jobs.projectId, projectId), eq(jobs.userId, user?.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -30,7 +31,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         resultClips = await db
           .select()
           .from(clips)
-          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
+          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user?.userId)));
       }
 
       return { ...job, clips: resultClips };
@@ -48,9 +49,9 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         .select()
         .from(jobs)
         .where(
-          user!.role === 'admin'
+          user?.role === 'admin'
             ? eq(jobs.id, id)
-            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
+            : and(eq(jobs.id, id), eq(jobs.userId, user?.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -64,7 +65,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         resultClips = await db
           .select()
           .from(clips)
-          .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
+          .where(and(eq(clips.jobId, id), eq(clips.userId, user?.userId)));
       }
 
       return { ...job, clips: resultClips };
@@ -82,15 +83,15 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         const updatedJob = await db
           .update(jobs)
           .set({
-            status: body.status as any,
+            status: body.status as JobState,
             progressPercent: body.progressPercent,
             failedReason: body.failedReason,
             updatedAt: new Date(),
           })
           .where(
-            user!.role === 'admin'
+            user?.role === 'admin'
               ? eq(jobs.id, id)
-              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
+              : and(eq(jobs.id, id), eq(jobs.userId, user?.userId)),
           )
           .returning()
           .then((res) => res[0]);
@@ -123,13 +124,13 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     ({ params: { id }, set }) => {
       set.headers['Content-Type'] = 'text/event-stream';
       set.headers['Cache-Control'] = 'no-cache';
-      set.headers['Connection'] = 'keep-alive';
+      set.headers.Connection = 'keep-alive';
 
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
 
-          const sendEvent = (event: string, data: any) => {
+          const sendEvent = (event: string, data: unknown) => {
             controller.enqueue(
               encoder.encode(
                 `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,

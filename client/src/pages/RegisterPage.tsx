@@ -27,8 +27,12 @@ const RegisterPage: React.FC = () => {
       navigate('/login', {
         state: { message: 'Registration successful! Please sign in.' },
       });
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -172,19 +176,19 @@ const RegisterPage: React.FC = () => {
 
         <p className="px-8 text-center text-sm text-slate-500">
           By clicking continue, you agree to our{' '}
-          <a
-            href="#"
+          <Link
+            to="/terms"
             className="underline hover:text-slate-400 transition-colors"
           >
             Terms of Service
-          </a>{' '}
+          </Link>{' '}
           and{' '}
-          <a
-            href="#"
+          <Link
+            to="/privacy"
             className="underline hover:text-slate-400 transition-colors"
           >
             Privacy Policy
-          </a>
+          </Link>
           .
         </p>
       </div>

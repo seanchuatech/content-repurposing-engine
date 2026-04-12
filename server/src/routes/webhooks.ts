@@ -8,8 +8,15 @@ import { stripe } from '../lib/stripe';
 
 export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
   '/stripe',
-  async (ctx: any) => {
-    const { request, set, headers } = ctx;
+  async ({
+    request,
+    set,
+    headers,
+  }: {
+    request: Request;
+    set: { status?: number | string };
+    headers: Record<string, string | undefined>;
+  }) => {
     const signature = headers['stripe-signature'];
     console.log('Stripe-Signature Header:', signature);
     if (!signature) {
@@ -33,8 +40,9 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
         signature,
         webhookSecret,
       );
-    } catch (err: any) {
-      console.error(`Webhook signature verification failed: ${err.message}`);
+    } catch (err) {
+      const error = err as Error;
+      console.error(`Webhook signature verification failed: ${error.message}`);
       set.status = 400;
       return { error: 'Webhook verification failed' };
     }
@@ -56,7 +64,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
     try {
       switch (event.type) {
         case 'checkout.session.completed': {
-          const session = event.data.object as any;
+          const session = event.data.object as Stripe.Checkout.Session;
           const userId = session.metadata?.userId;
           const stripeCustomerId = session.customer as string;
           const stripeSubscriptionId = session.subscription as string;
@@ -65,7 +73,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
             const [existing] = await db
               .select()
               .from(subscriptions)
-              .where(eq(subscriptions.userId, userId) as any)
+              .where(eq(subscriptions.userId, userId))
               .limit(1);
 
             if (existing) {
@@ -77,7 +85,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
                   status: 'active',
                   updatedAt: new Date(),
                 })
-                .where(eq(subscriptions.userId, userId) as any);
+                .where(eq(subscriptions.userId, userId));
             } else {
               await db.insert(subscriptions).values({
                 id: uuidv4(),
@@ -93,7 +101,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
 
         case 'customer.subscription.updated':
         case 'customer.subscription.deleted': {
-          const subscription = event.data.object as any;
+          const subscription = event.data.object as Stripe.Subscription;
           const status = subscription.status;
           const stripeSubscriptionId = subscription.id;
 
@@ -108,16 +116,13 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
               updatedAt: new Date(),
             })
             .where(
-              eq(
-                subscriptions.stripeSubscriptionId,
-                stripeSubscriptionId,
-              ) as any,
+              eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
             );
           break;
         }
 
         case 'invoice.payment_succeeded': {
-          const invoice = event.data.object as any;
+          const invoice = event.data.object as Stripe.Invoice;
           const stripeSubscriptionId = invoice.subscription as string;
 
           if (stripeSubscriptionId) {
@@ -128,17 +133,14 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
                 updatedAt: new Date(),
               })
               .where(
-                eq(
-                  subscriptions.stripeSubscriptionId,
-                  stripeSubscriptionId,
-                ) as any,
+                eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
               );
           }
           break;
         }
 
         case 'invoice.payment_failed': {
-          const invoice = event.data.object as any;
+          const invoice = event.data.object as Stripe.Invoice;
           const stripeSubscriptionId = invoice.subscription as string;
 
           if (stripeSubscriptionId) {
@@ -149,17 +151,14 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
                 updatedAt: new Date(),
               })
               .where(
-                eq(
-                  subscriptions.stripeSubscriptionId,
-                  stripeSubscriptionId,
-                ) as any,
+                eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
               );
           }
           break;
         }
 
         case 'customer.subscription.created': {
-          const subscription = event.data.object as any;
+          const subscription = event.data.object as Stripe.Subscription;
           const stripeSubscriptionId = subscription.id;
           const status = subscription.status;
 
@@ -167,12 +166,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
           const [existing] = await db
             .select()
             .from(subscriptions)
-            .where(
-              eq(
-                subscriptions.stripeSubscriptionId,
-                stripeSubscriptionId,
-              ) as any,
-            )
+            .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
             .limit(1);
 
           if (!existing) {
@@ -185,17 +179,14 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
               .update(subscriptions)
               .set({ status, updatedAt: new Date() })
               .where(
-                eq(
-                  subscriptions.stripeSubscriptionId,
-                  stripeSubscriptionId,
-                ) as any,
+                eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
               );
           }
           break;
         }
 
         case 'invoice.payment_action_required': {
-          const invoice = event.data.object as any;
+          const invoice = event.data.object as Stripe.Invoice;
           const stripeSubscriptionId = invoice.subscription as string;
 
           if (stripeSubscriptionId) {
@@ -206,10 +197,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
                 updatedAt: new Date(),
               })
               .where(
-                eq(
-                  subscriptions.stripeSubscriptionId,
-                  stripeSubscriptionId,
-                ) as any,
+                eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId),
               );
           }
           break;
@@ -227,8 +215,9 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
       });
 
       return { received: true };
-    } catch (err: any) {
-      console.error(`Error processing webhook event: ${err.message}`);
+    } catch (err) {
+      const error = err as Error;
+      console.error(`Error processing webhook event: ${error.message}`);
       set.status = 500;
       return { error: 'Webhook processing error' };
     }

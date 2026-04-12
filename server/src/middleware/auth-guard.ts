@@ -13,7 +13,7 @@ export const authGuard = new Elysia({ name: 'authGuard' })
   .use(
     jwt({
       name: 'jwt',
-      secret: process.env.JWT_SECRET!,
+      secret: process.env.JWT_SECRET as string,
     }),
   )
   .derive(
@@ -55,7 +55,10 @@ export const authGuard = new Elysia({ name: 'authGuard' })
       if (!value) return;
 
       return {
-        beforeHandle({ user, set }: { user: JWTPayload | null; set: any }) {
+        beforeHandle({
+          user,
+          set,
+        }: { user: JWTPayload | null; set: { status?: number | string } }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
@@ -70,7 +73,7 @@ export const authGuard = new Elysia({ name: 'authGuard' })
         async beforeHandle({
           user,
           set,
-        }: { user: JWTPayload | null; set: any }) {
+        }: { user: JWTPayload | null; set: { status?: number | string } }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };

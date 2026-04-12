@@ -12,7 +12,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     let currentSettings = await db
       .select()
       .from(settings)
-      .where(eq(settings.userId, user!.userId))
+      .where(eq(settings.userId, user?.userId))
       .limit(1)
       .then((res) => res[0]);
 
@@ -22,7 +22,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
         .insert(settings)
         .values({
           id: uuidv4(),
-          userId: user!.userId,
+          userId: user?.userId,
           whisperModel: 'whisper-large-v3',
           llmBackend: 'openai',
           llmModel: 'gpt-4o',
@@ -46,7 +46,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
             ...body,
             updatedAt: new Date(),
           })
-          .where(eq(settings.userId, user!.userId))
+          .where(eq(settings.userId, user?.userId))
           .returning()
           .then((res) => res[0]);
 

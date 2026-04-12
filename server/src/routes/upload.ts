@@ -66,7 +66,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const projectId = uuidv4();
         await db.insert(projects).values({
           id: projectId,
-          userId: user!.userId,
+          userId: user?.userId,
           title: `Project: ${sanitizedTitle}`,
         });
 
@@ -74,7 +74,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const videoId = uuidv4();
         await db.insert(videos).values({
           id: videoId,
-          userId: user!.userId,
+          userId: user?.userId,
           projectId,
           filePath: relativePath,
           originalName: sanitizedTitle,
@@ -84,7 +84,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.userId, user!.userId))
+          .where(eq(settings.userId, user?.userId))
           .limit(1)
           .then((res) => res[0]);
 
@@ -92,7 +92,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const jobId = uuidv4();
         await db.insert(jobs).values({
           id: jobId,
-          userId: user!.userId,
+          userId: user?.userId,
           projectId,
           videoId,
           status: JobState.PENDING,
@@ -165,14 +165,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         // Create Project
         await db.insert(projects).values({
           id: projectId,
-          userId: user!.userId,
+          userId: user?.userId,
           title: `YouTube Import: ${url}`,
         });
 
         // Create Video Entry (filePath will be updated by worker after download)
         await db.insert(videos).values({
           id: videoId,
-          userId: user!.userId,
+          userId: user?.userId,
           projectId,
           filePath: 'PENDING_DOWNLOAD',
           originalName: url,
@@ -182,14 +182,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.userId, user!.userId))
+          .where(eq(settings.userId, user?.userId))
           .limit(1)
           .then((res) => res[0]);
 
         // Create Job Entry
         await db.insert(jobs).values({
           id: jobId,
-          userId: user!.userId,
+          userId: user?.userId,
           projectId,
           videoId,
           status: JobState.PENDING,

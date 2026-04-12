@@ -10,7 +10,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getDownloadFileUrl, listDownloads, startDownload } from '../lib/api';
 
 type DownloadRecord = {
@@ -34,13 +34,25 @@ export default function DownloaderPage() {
   const [isPolling, setIsPolling] = useState(false);
 
   // Fetch initial downloads
-  const fetchDownloads = async () => {
+  const fetchDownloads = useCallback(async () => {
     try {
       const data = await listDownloads();
-      setDownloads(data);
+      // Map the API Download objects to the local DownloadRecord type
+      const mappedData: DownloadRecord[] = data.map((d) => ({
+        id: d.id,
+        youtubeUrl: d.url,
+        quality: d.status === 'COMPLETED' ? 'best' : '1080p', // approximation from UI
+        status: d.status,
+        progressPercent: d.progressPercent,
+        fileName: d.title,
+        fileSize: 0, // not in API yet
+        failedReason: d.error,
+        createdAt: d.createdAt,
+      }));
+      setDownloads(mappedData);
 
       // Check if any downloads are active to trigger polling
-      const hasActive = data.some(
+      const hasActive = mappedData.some(
         (d: DownloadRecord) =>
           d.status === 'PENDING' || d.status === 'DOWNLOADING',
       );
@@ -48,11 +60,11 @@ export default function DownloaderPage() {
     } catch (err) {
       console.error('Failed to fetch downloads', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDownloads();
-  }, []);
+  }, [fetchDownloads]);
 
   // Polling mechanism
   useEffect(() => {
@@ -63,7 +75,7 @@ export default function DownloaderPage() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [isPolling]);
+  }, [isPolling, fetchDownloads]);
 
   const handleFileDownload = async (download: DownloadRecord) => {
     try {
@@ -101,8 +113,10 @@ export default function DownloaderPage() {
       // Optimistically fetch history and start polling
       await fetchDownloads();
       setIsPolling(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to start download');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to start download';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -113,9 +127,7 @@ export default function DownloaderPage() {
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-    );
+    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   };
 
   const getStatusIcon = (status: string) => {
@@ -158,9 +170,11 @@ export default function DownloaderPage() {
 
         <div className="relative space-y-6">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* URL Input */}
             <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium text-zinc-300 ml-1">
+              <label
+                htmlFor="youtube-url"
+                className="text-sm font-medium text-zinc-300 ml-1"
+              >
                 YouTube URL
               </label>
               <div className="relative">
@@ -168,6 +182,7 @@ export default function DownloaderPage() {
                   <LinkIcon className="h-5 w-5 text-zinc-500" />
                 </div>
                 <input
+                  id="youtube-url"
                   type="url"
                   required
                   value={url}
@@ -180,11 +195,15 @@ export default function DownloaderPage() {
 
             {/* Quality Selector */}
             <div className="w-full md:w-64 space-y-2">
-              <label className="text-sm font-medium text-zinc-300 ml-1">
+              <label
+                htmlFor="format-quality"
+                className="text-sm font-medium text-zinc-300 ml-1"
+              >
                 Format Quality
               </label>
               <div className="relative">
                 <select
+                  id="format-quality"
                   value={quality}
                   onChange={(e) => setQuality(e.target.value)}
                   className="block w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 pr-10 text-zinc-100 placeholder-zinc-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none shadow-inner"
@@ -330,6 +349,7 @@ export default function DownloaderPage() {
                           </button>
                         ) : download.status === 'FAILED' ? (
                           <button
+                            type="button"
                             onClick={() => {
                               setUrl(download.youtubeUrl);
                               setQuality(download.quality);
