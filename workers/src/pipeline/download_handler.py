@@ -1,6 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
+from typing import Any, cast
 
 import httpx
 import yt_dlp
@@ -15,10 +16,10 @@ async def update_download_status(
     download_id: str,
     status: str,
     progress: int = 0,
-    file_path: str = None,
-    file_name: str = None,
-    file_size: int = None,
-    failed_reason: str = None,
+    file_path: str | None = None,
+    file_name: str | None = None,
+    file_size: int | None = None,
+    failed_reason: str | None = None,
 ):
     url = f"{config.SERVER_URL}/download/{download_id}"
     payload = {
@@ -41,6 +42,7 @@ async def update_download_status(
     except Exception as e:
         logger.error(f"Failed to update remote download status: {e}")
 
+
 async def process_youtube_download(payload: DownloadJobPayload):
     logger.info(f"Starting YouTube download job {payload.downloadId}")
     await update_download_status(payload.downloadId, "DOWNLOADING", 0)
@@ -56,9 +58,9 @@ async def process_youtube_download(payload: DownloadJobPayload):
 
     def progress_hook(d):
         nonlocal last_reported_progress
-        if d['status'] == 'downloading':
-            total = d.get('total_bytes') or d.get('total_bytes_estimate')
-            downloaded = d.get('downloaded_bytes', 0)
+        if d["status"] == "downloading":
+            total = d.get("total_bytes") or d.get("total_bytes_estimate")
+            downloaded = d.get("downloaded_bytes", 0)
             if total and total > 0:
                 percent = int((downloaded / total) * 100)
                 # Debounce: report every 5%
@@ -70,23 +72,24 @@ async def process_youtube_download(payload: DownloadJobPayload):
                         update_download_status(
                             payload.downloadId, "DOWNLOADING", percent
                         ),
-                        loop
+                        loop,
                     )
 
-    ydl_opts = {
-        'format': payload.formatString,
-        'outtmpl': output_template,
-        'progress_hooks': [progress_hook],
-        'quiet': True,
-        'no_warnings': True,
+    ydl_opts: dict[str, Any] = {
+        "format": payload.formatString,
+        "outtmpl": output_template,
+        "progress_hooks": [progress_hook],
+        "quiet": True,
+        "no_warnings": True,
     }
 
     try:
         # Run synchronous yt_dlp in thread to not block event loop
         def download_sync():
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            from typing import Any as AnyType
+            with yt_dlp.YoutubeDL(cast(AnyType, ydl_opts)) as ydl:
                 info = ydl.extract_info(payload.youtubeUrl, download=True)
-                return ydl.prepare_filename(info), info.get('title', 'Downloaded Video')
+                return ydl.prepare_filename(info), info.get("title", "Downloaded Video")
 
         file_path, file_name = await asyncio.to_thread(download_sync)
 
@@ -100,7 +103,7 @@ async def process_youtube_download(payload: DownloadJobPayload):
             100,
             file_path=rel_path,
             file_name=file_name,
-            file_size=file_size
+            file_size=file_size,
         )
         logger.info(f"Completed YouTube download job {payload.downloadId}")
     except Exception as e:

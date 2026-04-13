@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any, cast
 
 import httpx
 
@@ -22,7 +23,10 @@ from src.utils.api import get_auth_headers
 
 
 async def update_remote_job_status(
-    job_id: str, status: JobState, progress: int, failed_reason: str = None
+    job_id: str,
+    status: JobState,
+    progress: int,
+    failed_reason: str | None = None,
 ):
     """
     Updates the job status and progress on the server API.
@@ -44,16 +48,16 @@ async def update_remote_job_status(
 
 
 async def update_remote_video_metadata(
-    video_id: str, file_path: str, duration: float = None
+    video_id: str, file_path: str, duration: float | None = None
 ):
     """
     Updates the video metadata on the server (path and duration).
     """
     url = f"{config.SERVER_URL}/projects/videos/{video_id}"
-    payload = {
+    payload: dict[str, Any] = {
         "filePath": file_path,
     }
-    if duration:
+    if duration is not None:
         payload["durationSeconds"] = int(duration)
 
     try:
@@ -81,7 +85,7 @@ async def fetch_clip_from_server(clip_id: str) -> Clip:
             end_time=float(data["endTime"]),
             title=data["title"],
             virality_score=data["viralityScore"] or 0,
-            explanation=data["explanation"] or ""
+            explanation=data["explanation"] or "",
         )
 
 
@@ -114,7 +118,7 @@ async def save_clip_to_server(project_id: str, video_id: str, job_id: str, clip_
         "title": clip_data.title,
         "viralityScore": clip_data.virality_score,
         "explanation": clip_data.explanation,
-        "storagePath": clip_data.storage_path
+        "storagePath": clip_data.storage_path,
     }
 
     try:
@@ -171,13 +175,11 @@ async def _handle_ingestion(
                 )
 
                 logger.info(
-                    "Successfully ingested YouTube subtitles. "
-                    "Will skip transcription."
+                    "Successfully ingested YouTube subtitles. Will skip transcription."
                 )
             except Exception as e:
                 logger.error(
-                    f"Failed to parse YouTube subtitles: {e}. "
-                    "Will fallback to Whisper."
+                    f"Failed to parse YouTube subtitles: {e}. Will fallback to Whisper."
                 )
                 transcript = None
 
@@ -190,7 +192,9 @@ async def _handle_ingestion(
     # Check duration for local file uploads
     try:
         info = await ffmpeg_service.get_video_info(current_file_path_abs)
-        duration = float(info.get("format", {}).get("duration", 0))
+        format_info = info.get("format", {})
+        duration_val = format_info.get("duration")
+        duration = float(duration_val) if duration_val is not None else 0.0
 
         if duration > config.MAX_VIDEO_DURATION_SECONDS:
             minutes = config.MAX_VIDEO_DURATION_SECONDS // 60
@@ -276,7 +280,7 @@ async def process_video_job(job_data: dict):
         # CASE A: REGENERATE SINGLE CLIP
         if only_clip_id:
             return await _handle_regeneration(
-                payload, current_file_path, only_clip_id, whisper_model
+                payload, current_file_path, only_clip_id, cast(str, whisper_model)
             )
 
         # CASE B: FULL PIPELINE
@@ -285,7 +289,7 @@ async def process_video_job(job_data: dict):
             logger.info(f"Stage 1: Transcribing {current_file_path}...")
             await update_remote_job_status(payload.jobId, JobState.TRANSCRIBING, 5)
             transcript = await transcribe_video(
-                payload.jobId, current_file_path, model_name=whisper_model
+                payload.jobId, current_file_path, model_name=cast(str, whisper_model)
             )
 
             # Save transcript to temp and upload to S3
@@ -297,8 +301,7 @@ async def process_video_job(job_data: dict):
             with open(transcript_path, "w") as f:
                 json.dump(transcript, f, indent=2)
             storage_service.upload_if_s3(
-                transcript_path,
-                os.path.relpath(transcript_path, config.PROJECT_ROOT)
+                transcript_path, os.path.relpath(transcript_path, config.PROJECT_ROOT)
             )
         else:
             logger.info("Stage 1: Ingested subtitles found, skipping transcription.")
@@ -322,7 +325,7 @@ async def process_video_job(job_data: dict):
                     end_time=s["end"],
                     title=s["title"],
                     virality_score=100,
-                    explanation="Manual selection"
+                    explanation="Manual selection",
                 )
                 for i, s in enumerate(payload.manualSegments)
             ]
@@ -332,8 +335,8 @@ async def process_video_job(job_data: dict):
             clips = await analyze_transcript(
                 payload.jobId,
                 transcript,
-                llm_backend=llm_backend,
-                llm_model=llm_model,
+                llm_backend=cast(str, llm_backend),
+                llm_model=cast(str, llm_model),
             )
 
         if not clips:
@@ -343,7 +346,7 @@ async def process_video_job(job_data: dict):
         # 3, 4, 5. Clip, Caption, Reframe
         total_clips = len(clips)
         for i, clip in enumerate(clips):
-            logger.info(f"Processing clip {i+1}/{total_clips}: {clip.id}")
+            logger.info(f"Processing clip {i + 1}/{total_clips}: {clip.id}")
             progress_base = 50 + int((i / total_clips) * 15)
             await update_remote_job_status(
                 payload.jobId, JobState.CLIPPING, progress_base
@@ -375,7 +378,7 @@ async def process_video_job(job_data: dict):
     except Exception as e:
         logger.exception(f"Failed to process job {job_id}")
         try:
-            target_job_id = job_data.get('jobId')
+            target_job_id = job_data.get("jobId")
             if target_job_id:
                 await update_remote_job_status(
                     target_job_id, JobState.FAILED, 0, failed_reason=str(e)
@@ -383,6 +386,7 @@ async def process_video_job(job_data: dict):
         except Exception:
             pass
         raise e
+
 
 async def process_youtube_download_job(job_data: dict):
     job_id = job_data.get("downloadId")

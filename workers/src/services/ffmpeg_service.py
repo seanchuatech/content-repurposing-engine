@@ -11,17 +11,17 @@ class FFmpegService:
         """
         command = [
             "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_format",
             "-show_streams",
-            input_path
+            input_path,
         ]
 
         process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
@@ -50,21 +50,24 @@ class FFmpegService:
         # -avoid_negative_ts make_zero is often needed with -ss and -c copy
         command = [
             "ffmpeg",
-            "-y", # Overwrite output
-            "-ss", str(start_time),
-            "-t", str(duration),
-            "-i", input_path,
-            "-c", "copy",
-            "-avoid_negative_ts", "make_zero",
-            output_path
+            "-y",  # Overwrite output
+            "-ss",
+            str(start_time),
+            "-t",
+            str(duration),
+            "-i",
+            input_path,
+            "-c",
+            "copy",
+            "-avoid_negative_ts",
+            "make_zero",
+            output_path,
         ]
 
         logger.debug(f"Running FFmpeg: {' '.join(command)}")
 
         process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
@@ -89,26 +92,29 @@ class FFmpegService:
         command = [
             "ffmpeg",
             "-y",
-            "-i", input_path,
+            "-i",
+            input_path,
             "-vf",
             (
                 f"subtitles='{srt_path}':force_style='FontSize=24,"
                 "PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
                 "BorderStyle=1,Outline=1,Shadow=0,Alignment=2'"
             ),
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-crf", "22",
-            "-c:a", "copy",
-            output_path
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "22",
+            "-c:a",
+            "copy",
+            output_path,
         ]
 
         logger.debug(f"Running FFmpeg: {' '.join(command)}")
 
         process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
@@ -134,26 +140,29 @@ class FFmpegService:
         command = [
             "ffmpeg",
             "-y",
-            "-i", input_path,
+            "-i",
+            input_path,
             "-vf",
             (
                 "crop=ih*9/16:ih:(iw-ow)/2:0,scale=1080:1920:"
                 "force_original_aspect_ratio=decrease,"
                 "pad=1080:1920:(ow-iw)/2:(oh-ih)/2"
             ),
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-crf", "22",
-            "-c:a", "copy",
-            output_path
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "22",
+            "-c:a",
+            "copy",
+            output_path,
         ]
 
         logger.debug(f"Running FFmpeg: {' '.join(command)}")
 
         process = await asyncio.create_subprocess_exec(
-            *command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
@@ -164,5 +173,6 @@ class FFmpegService:
             raise RuntimeError(f"FFmpeg reframe_to_916 failed: {stderr.decode()}")
 
         logger.info(f"Successfully reframed video to {output_path}")
+
 
 ffmpeg_service = FFmpegService()

@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 
 from yt_dlp import YoutubeDL
 
@@ -14,7 +15,7 @@ async def download_youtube_video(url: str, job_id: str) -> tuple[str, str | None
     output_dir = os.path.join(config.PROJECT_ROOT, "storage", "uploads")
     os.makedirs(output_dir, exist_ok=True)
 
-    ydl_opts = {
+    ydl_opts: dict[str, Any] = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": f"{output_dir}/%(id)s.%(ext)s",
         "merge_output_format": "mp4",
@@ -29,10 +30,15 @@ async def download_youtube_video(url: str, job_id: str) -> tuple[str, str | None
     logger.info(f"Downloading YouTube video: {url}")
 
     try:
-        with YoutubeDL(ydl_opts) as ydl:
+        from typing import Any as AnyType
+
+        with YoutubeDL(cast(AnyType, ydl_opts)) as ydl:
             # First extract info without downloading to check duration
             info = ydl.extract_info(url, download=False)
-            duration = info.get('duration', 0)
+            if info is None:
+                raise ValueError("Could not extract video info from YouTube")
+
+            duration = info.get("duration") or 0
 
             if duration > config.MAX_VIDEO_DURATION_SECONDS:
                 minutes = config.MAX_VIDEO_DURATION_SECONDS // 60

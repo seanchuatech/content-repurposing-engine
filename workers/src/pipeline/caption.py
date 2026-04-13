@@ -14,6 +14,7 @@ def format_timestamp(seconds: float) -> str:
     millis = int((seconds % 1) * 1000)
     return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
 
+
 async def generate_captions(clip_path_rel: str, clip: Clip, transcript: dict) -> str:
     """
     Generates an SRT file from transcript segments and burns it into the video.
@@ -35,7 +36,8 @@ async def generate_captions(clip_path_rel: str, clip: Clip, transcript: dict) ->
     # Filter words within the clip's timeframe (including 3s padding)
     padded_end_time = clip.end_time + 3.0
     clip_words = [
-        w for w in all_words
+        w
+        for w in all_words
         if w.get("start", 0) >= clip.start_time and w.get("end", 0) <= padded_end_time
     ]
 
@@ -44,7 +46,7 @@ async def generate_captions(clip_path_rel: str, clip: Clip, transcript: dict) ->
             f"No words found for clip {clip.id} "
             f"between {clip.start_time} and {clip.end_time}"
         )
-        return clip_path_rel # Return original if no captions
+        return clip_path_rel  # Return original if no captions
 
     # 2. Create SRT content
     srt_lines = []
@@ -58,7 +60,7 @@ async def generate_captions(clip_path_rel: str, clip: Clip, transcript: dict) ->
         srt_lines.append(f"{i + 1}")
         srt_lines.append(f"{format_timestamp(start)} --> {format_timestamp(end)}")
         srt_lines.append(text)
-        srt_lines.append("") # Empty line between entries
+        srt_lines.append("")  # Empty line between entries
 
     srt_content = "\n".join(srt_lines)
 

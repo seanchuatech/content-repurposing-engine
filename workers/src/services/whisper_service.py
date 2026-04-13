@@ -18,13 +18,19 @@ def _extract_audio_for_groq(video_path: str) -> str:
     output_path = os.path.join(temp_dir, "audio.flac")
 
     cmd = [
-        "ffmpeg", "-y",
-        "-i", video_path,
-        "-ar", "16000",     # 16kHz sample rate (Whisper native)
-        "-ac", "1",         # mono
-        "-map", "0:a",      # audio track only
-        "-c:a", "flac",     # lossless compression
-        output_path
+        "ffmpeg",
+        "-y",
+        "-i",
+        video_path,
+        "-ar",
+        "16000",  # 16kHz sample rate (Whisper native)
+        "-ac",
+        "1",  # mono
+        "-map",
+        "0:a",  # audio track only
+        "-c:a",
+        "flac",  # lossless compression
+        output_path,
     ]
 
     logger.info(f"Extracting audio for Groq: {' '.join(cmd)}")
@@ -113,7 +119,7 @@ def _normalize_groq_response(groq_result) -> dict:
     }
 
 
-def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
+def groq_transcribe_sync(video_path: str, model_name: str | None = None) -> dict:
     """
     Transcribes audio using the Groq API (cloud-hosted Whisper).
     """
@@ -156,7 +162,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
         except OSError:
             pass
 
-async def transcribe(video_path: str, model_name: str = None) -> dict:
+
+async def transcribe(video_path: str, model_name: str | None = None) -> dict:
     """
     Transcription router. All transcription is now handled by Groq.
     """

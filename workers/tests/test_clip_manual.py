@@ -31,7 +31,7 @@ async def test_manual_clipping():
         end_time=7.0,
         title="Testing Clip Extraction",
         virality_score=90,
-        explanation="Testing the FFmpeg service."
+        explanation="Testing the FFmpeg service.",
     )
 
     print(f"Testing clip extraction for job {job_id}...")
@@ -48,6 +48,7 @@ async def test_manual_clipping():
             print(f"FAILURE: File NOT found at {full_path}")
     except Exception as e:
         print(f"FAILURE: Exception occurred: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_manual_clipping())

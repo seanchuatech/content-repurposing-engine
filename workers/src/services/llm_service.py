@@ -24,8 +24,8 @@ class LLMService:
         self,
         prompt: str,
         system_prompt: str = "You are a helpful assistant.",
-        backend: str = None,
-        model: str = None,
+        backend: str | None = None,
+        model: str | None = None,
     ) -> dict:
         """
         Generates a JSON response from the configured LLM backend.
@@ -53,11 +53,13 @@ class LLMService:
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
             content = response.choices[0].message.content
+            if content is None:
+                raise ValueError("OpenAI returned empty content")
             return json.loads(content)
         except Exception as e:
             logger.error(f"OpenAI generation failed: {e}")
@@ -78,25 +80,33 @@ class LLMService:
         try:
             # Use run_in_executor since the google-genai library is synchronous
             import asyncio
+
             loop = asyncio.get_event_loop()
 
             # Use the new SDK's structure
+            assert self.gemini_client is not None
+
+            # Use the new SDK's structure
             def call_gemini():
+                assert self.gemini_client is not None
                 return self.gemini_client.models.generate_content(
                     model=model,
                     contents=prompt,
                     config={
                         "system_instruction": system_prompt,
                         "response_mime_type": "application/json",
-                    }
+                    },
                 )
 
             response = await loop.run_in_executor(None, call_gemini)
 
             # The response text should be valid JSON
+            if response.text is None:
+                raise ValueError("Gemini returned empty text")
             return json.loads(response.text)
         except Exception as e:
             logger.error(f"Gemini generation failed: {e}")
             raise
+
 
 llm_service = LLMService()

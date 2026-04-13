@@ -11,14 +11,16 @@ from src.pipeline.caption import generate_captions
 
 
 async def test_manual_captioning():
-    job_id = "test-job-clipping" # Use same job_id as previous test
+    job_id = "test-job-clipping"  # Use same job_id as previous test
     clip_id = f"{job_id}-clip-1"
 
     # PROJECT ROOT
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
     clip_path_rel = f"storage/clips/{clip_id}_raw.mp4"
-    transcript_path = os.path.join(project_root, "storage", "temp", "job-7", "transcript.json")
+    transcript_path = os.path.join(
+        project_root, "storage", "temp", "job-7", "transcript.json"
+    )
     full_clip_path = os.path.join(project_root, clip_path_rel)
 
     if not os.path.exists(transcript_path):
@@ -26,7 +28,10 @@ async def test_manual_captioning():
         return
 
     if not os.path.exists(full_clip_path):
-        print(f"Error: clip file not found at {full_clip_path}. Run test_clip_manual.py first.")
+        print(
+            f"Error: clip file not found at {full_clip_path}. "
+            f"Run test_clip_manual.py first."
+        )
         return
 
     with open(transcript_path) as f:
@@ -41,7 +46,7 @@ async def test_manual_captioning():
         end_time=7.0,
         title="Testing Captioning",
         virality_score=90,
-        explanation="Testing the FFmpeg caption service."
+        explanation="Testing the FFmpeg caption service.",
     )
 
     print(f"Testing caption generation for clip {clip_id}...")
@@ -58,6 +63,7 @@ async def test_manual_captioning():
             print(f"FAILURE: File NOT found at {full_path}")
     except Exception as e:
         print(f"FAILURE: Exception occurred: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(test_manual_captioning())

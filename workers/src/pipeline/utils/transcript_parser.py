@@ -15,6 +15,7 @@ def parse_time(time_str: str) -> float:
         return int(m) * 60 + float(s)
     return float(time_str)
 
+
 def parse_transcript_file(file_path: str) -> dict[str, Any]:
     """
     Parses a VTT or SRT file and returns a Whisper-compatible dictionary.
@@ -57,14 +58,7 @@ def parse_transcript_file(file_path: str) -> dict[str, Any]:
             text = re.sub(r"<[^>]+>", "", text)
 
             if text:
-                segments.append({
-                    "start": start,
-                    "end": end,
-                    "text": text
-                })
+                segments.append({"start": start, "end": end, "text": text})
                 full_text.append(text)
 
-    return {
-        "text": " ".join(full_text),
-        "segments": segments
-    }
+    return {"text": " ".join(full_text), "segments": segments}

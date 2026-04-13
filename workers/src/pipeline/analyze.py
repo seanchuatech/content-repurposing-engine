@@ -13,7 +13,6 @@ moments suitable for short-form clips (TikTok, Reels, Shorts).
 
 For each viral moment, you must provide:
 1. Start and End timestamps (seconds).
-1. Start and End timestamps (seconds).
 2. A hook-driven, catchy title.
 3. A virality score (1-100).
 4. A brief explanation of why this moment is engaging.
@@ -46,11 +45,12 @@ JSON output format:
 }}
 """
 
+
 async def analyze_transcript(
     job_id: str,
     transcript: dict,
-    llm_backend: str = None,
-    llm_model: str = None,
+    llm_backend: str | None = None,
+    llm_model: str | None = None,
 ) -> list[Clip]:
     logger.info(f"Analyzing transcript for viral moments (Job: {job_id})...")
 
@@ -76,13 +76,13 @@ async def analyze_transcript(
         clips = []
         for i, rc in enumerate(raw_clips):
             clip = Clip(
-                id=f"{job_id}-clip-{i+1}",
+                id=f"{job_id}-clip-{i + 1}",
                 job_id=job_id,
                 start_time=float(rc.get("start_time", 0)),
                 end_time=float(rc.get("end_time", 0)),
-                title=rc.get("title", f"Clip {i+1}"),
+                title=rc.get("title", f"Clip {i + 1}"),
                 virality_score=int(rc.get("virality_score", 50)),
-                explanation=rc.get("explanation", "")
+                explanation=rc.get("explanation", ""),
             )
             clips.append(clip)
 
@@ -117,8 +117,7 @@ async def analyze_transcript(
                 title="Insightful Moment (AI Fallback)",
                 virality_score=75,
                 explanation=(
-                    "Automatically identified segment "
-                    "(AI analysis was unavailable)."
-                )
+                    "Automatically identified segment (AI analysis was unavailable)."
+                ),
             )
         ]

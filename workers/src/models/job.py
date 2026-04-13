@@ -13,6 +13,7 @@ class JobState(str, Enum):  # noqa: UP042
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
+
 class JobPayload(BaseModel):
     jobId: str
     projectId: str

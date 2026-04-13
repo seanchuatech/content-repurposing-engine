@@ -7,7 +7,7 @@ from src.services.whisper_service import transcribe
 
 
 async def transcribe_video(
-    job_id: str, video_path_rel: str, model_name: str = None
+    job_id: str, video_path_rel: str, model_name: str | None = None
 ) -> dict:
     """
     Transcribes a video file using the configured backend (Groq cloud)
