@@ -16,8 +16,16 @@ output "api_ecr_repository_url" {
   value = module.cicd.api_ecr_url
 }
 
+output "api_ecr_repository_name" {
+  value = module.cicd.api_ecr_name
+}
+
 output "worker_ecr_repository_url" {
   value = module.cicd.worker_ecr_url
+}
+
+output "worker_ecr_repository_name" {
+  value = module.cicd.worker_ecr_name
 }
 
 output "rds_endpoint" {
