@@ -199,6 +199,22 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_listener_rule" "api_http" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 1
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*", "/healthz"]
+    }
+  }
+}
+
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = 443
@@ -253,6 +269,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "STRIPE_PRICE_ID",       valueFrom = "${var.ssm_prefix}/stripe_price_id" },
       { name = "GOOGLE_CLIENT_ID",      valueFrom = "${var.ssm_prefix}/google_client_id" },
       { name = "GOOGLE_CLIENT_SECRET",  valueFrom = "${var.ssm_prefix}/google_client_secret" },
+      { name = "ALLOWED_DEMO_EMAILS",   valueFrom = "${var.ssm_prefix}/allowed_demo_emails" },
     ]
 
     logConfiguration = {

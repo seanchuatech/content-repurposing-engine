@@ -44,3 +44,7 @@ output "s3_media_bucket" {
 output "cloudfront_distribution_id" {
   value = module.cdn.cloudfront_distribution_id
 }
+
+output "acm_validation_records" {
+  value = module.cdn.acm_validation_records
+}

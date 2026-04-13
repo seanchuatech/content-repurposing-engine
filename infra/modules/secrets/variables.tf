@@ -50,3 +50,8 @@ variable "google_client_secret" {
   type      = string
   sensitive = true
 }
+
+variable "allowed_demo_emails" {
+  description = "Comma-separated list of emails allowed to use the demo"
+  type        = string
+}

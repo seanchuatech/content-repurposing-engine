@@ -152,7 +152,7 @@ jobs:
         with:
           task-definition: task-def-api.json
           container-name: api
-          image: 728399088474.dkr.ecr.ap-southeast-1.amazonaws.com/content-engine-prod-api:${{ github.sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.API_ECR_REPOSITORY }}:${{ github.sha }}
 
       - name: Register and deploy new API task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -201,7 +201,7 @@ jobs:
         with:
           task-definition: task-def-worker.json
           container-name: worker
-          image: 728399088474.dkr.ecr.ap-southeast-1.amazonaws.com/content-engine-prod-worker:${{ github.sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.WORKER_ECR_REPOSITORY }}:${{ github.sha }}
 
       - name: Register new Worker task definition
         # Note: no ECS service to update — the new ARN will be automatically

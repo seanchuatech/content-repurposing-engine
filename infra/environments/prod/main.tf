@@ -69,6 +69,7 @@ module "cdn" {
 }
 
 module "secrets" {
+  allowed_demo_emails = var.allowed_demo_emails
   source       = "../../modules/secrets"
   project_name = var.project_name
   environment  = var.environment

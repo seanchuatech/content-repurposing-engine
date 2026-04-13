@@ -86,3 +86,8 @@ variable "worker_image_tag" {
   type    = string
   default = "latest"
 }
+
+variable "allowed_demo_emails" {
+  description = "Comma-separated list of emails allowed to use the demo"
+  type        = string
+}

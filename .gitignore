@@ -95,10 +95,9 @@ Thumb.db
 .agents/
 
 # Terraform (Infra)
-infra/.terraform/
-infra/.terraform.lock.hcl
-infra/*.tfvars
-infra/terraform.tfvars
-infra/*.tfstate
-infra/*.tfstate.backup
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfvars
+**/*.tfstate
+**/*.tfstate.backup
 infra/crash.log

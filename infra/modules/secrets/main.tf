@@ -66,3 +66,10 @@ resource "aws_ssm_parameter" "google_client_secret" {
   value = var.google_client_secret
   tags  = { Name = "${local.name}-google-client-secret" }
 }
+
+resource "aws_ssm_parameter" "allowed_demo_emails" {
+  name  = "${local.prefix}/allowed_demo_emails"
+  type  = "SecureString"
+  value = var.allowed_demo_emails
+  tags  = { Name = "${local.name}-allowed-demo-emails" }
+}
