@@ -16,7 +16,11 @@ module "cicd" {
 
   github_repo       = var.github_repo
   spa_bucket_arn    = module.storage.spa_bucket_arn
-  execution_role_arn = module.compute.api_task_role_arn # placeholder — corrected below
+  pass_role_arns    = [
+    module.compute.api_task_role_arn,
+    module.compute.worker_task_role_arn,
+    module.compute.execution_role_arn
+  ]
 }
 
 module "database" {

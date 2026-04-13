@@ -21,3 +21,7 @@ output "api_task_role_arn" {
 output "worker_task_role_arn" {
   value = aws_iam_role.worker_task.arn
 }
+
+output "execution_role_arn" {
+  value = aws_iam_role.execution.arn
+}

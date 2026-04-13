@@ -7,4 +7,7 @@ variable "github_repo" {
 }
 
 variable "spa_bucket_arn"    { type = string }
-variable "execution_role_arn" { type = string }
+variable "pass_role_arns" {
+  type        = list(string)
+  description = "ARNs of roles that the GitHub deployer is allowed to pass to ECS"
+}

@@ -142,11 +142,11 @@ resource "aws_iam_role_policy" "github_deploy" {
         ]
         Resource = "*"
       },
-      # Pass execution role (needed by ECS for task registration)
+      # Pass execution and task roles (needed by ECS for task registration)
       {
         Effect   = "Allow"
         Action   = "iam:PassRole"
-        Resource = var.execution_role_arn
+        Resource = var.pass_role_arns
       },
       # Sync SPA to S3 + invalidate CloudFront
       {
@@ -158,6 +158,12 @@ resource "aws_iam_role_policy" "github_deploy" {
         Effect   = "Allow"
         Action   = ["cloudfront:CreateInvalidation"]
         Resource = "*"
+      },
+      # Update Worker Task Def ARN in SSM
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:PutParameter"]
+        Resource = "arn:aws:ssm:ap-southeast-1:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}-${var.environment}/worker_task_def_arn"
       },
     ]
   })
