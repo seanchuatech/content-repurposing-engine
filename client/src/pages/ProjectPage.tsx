@@ -30,6 +30,7 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
+  const [syncedJobId, setSyncedJobId] = useState<string | null>(null);
 
   // Editor State
   const [isEditing, setIsEditing] = useState(false);
@@ -64,21 +65,26 @@ export default function ProjectPage() {
   }, [id]);
 
   useEffect(() => {
-    if (liveJob?.status === 'COMPLETED' && currentJob?.id) {
+    // Only refresh data if the job has completed and we haven't synced this specific job yet
+    if (
+      liveJob?.status === 'COMPLETED' &&
+      currentJob?.id &&
+      syncedJobId !== currentJob.id
+    ) {
       getJob(currentJob.id).then((data) => {
         if (data.clips) {
           setClips(data.clips);
+          setSyncedJobId(currentJob.id); // Mark this job as synced
+
           // If the currently active clip was regenerated, update its path
           if (activeClip) {
-            const updated = data.clips.find(
-              (c: Clip) => c.id === activeClip.id,
-            );
+            const updated = data.clips.find((c: Clip) => c.id === activeClip.id);
             if (updated) setActiveClip(updated);
           }
         }
       });
     }
-  }, [liveJob?.status, currentJob?.id, activeClip]);
+  }, [liveJob?.status, currentJob?.id, syncedJobId]); // Removed activeClip from deps
 
   const handlePlayClip = (clip: Clip) => {
     setActiveClip(clip);
