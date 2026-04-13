@@ -144,6 +144,29 @@ resource "aws_security_group" "rds" {
   tags = { Name = "${local.name}-sg-rds" }
 }
 
+# VPC Endpoints SG: Allow HTTPS from within the VPC
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "${local.name}-sg-vpc-endpoints"
+  description = "Allow HTTPS from within the VPC to endpoints"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "${local.name}-sg-vpc-endpoints" }
+}
+
 # ─── VPC Endpoints (avoid NAT Gateway costs) ─────────────────────────────────
 # These allow ECS tasks in public subnets to reach AWS services without
 # traversing the public internet for S3 and ECR traffic.
@@ -163,7 +186,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
   service_name        = "com.amazonaws.${data.aws_region.current.name}.ecr.dkr"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.public[*].id
-  security_group_ids  = [aws_security_group.api.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
   tags                = { Name = "${local.name}-vpce-ecr-dkr" }
 }
@@ -173,7 +196,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
   service_name        = "com.amazonaws.${data.aws_region.current.name}.ecr.api"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.public[*].id
-  security_group_ids  = [aws_security_group.api.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
   tags                = { Name = "${local.name}-vpce-ecr-api" }
 }
@@ -183,7 +206,7 @@ resource "aws_vpc_endpoint" "logs" {
   service_name        = "com.amazonaws.${data.aws_region.current.name}.logs"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.public[*].id
-  security_group_ids  = [aws_security_group.api.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
   tags                = { Name = "${local.name}-vpce-logs" }
 }
@@ -193,7 +216,7 @@ resource "aws_vpc_endpoint" "ssm" {
   service_name        = "com.amazonaws.${data.aws_region.current.name}.ssm"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.public[*].id
-  security_group_ids  = [aws_security_group.api.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
   tags                = { Name = "${local.name}-vpce-ssm" }
 }
