@@ -78,8 +78,8 @@ export default function ProjectsPage() {
   // Sort the projects array based on criteria
   const sortedProjects = useMemo(() => {
     return [...projects].sort((a, b) => {
-      let aVal: any;
-      let bVal: any;
+      let aVal: string | number;
+      let bVal: string | number;
 
       if (sortColumn === 'durationSeconds') {
         aVal = a.video?.durationSeconds || 0;
@@ -88,8 +88,19 @@ export default function ProjectsPage() {
         aVal = a.job?.status || '';
         bVal = b.job?.status || '';
       } else {
-        aVal = (a as any)[sortColumn];
-        bVal = (b as any)[sortColumn];
+        // Use a type-safe way to access properties
+        const key = sortColumn as keyof ProjectWithDetails;
+        const valA = a[key];
+        const valB = b[key];
+
+        aVal =
+          typeof valA === 'string' || typeof valA === 'number'
+            ? valA
+            : String(valA || '');
+        bVal =
+          typeof valB === 'string' || typeof valB === 'number'
+            ? valB
+            : String(valB || '');
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -177,47 +188,52 @@ export default function ProjectsPage() {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-zinc-900 text-zinc-400 border-b border-zinc-800 uppercase text-xs font-semibold tracking-wider">
                 <tr>
-                  <th
-                    className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
-                    onClick={() => toggleSort('title')}
-                  >
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer group hover:text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+                      onClick={() => toggleSort('title')}
+                    >
                       Project <SortIcon column="title" />
-                    </div>
+                    </button>
                   </th>
                   <th className="px-6 py-4">Format</th>
-                  <th
-                    className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
-                    onClick={() => toggleSort('durationSeconds')}
-                  >
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer group hover:text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+                      onClick={() => toggleSort('durationSeconds')}
+                    >
                       Duration <SortIcon column="durationSeconds" />
-                    </div>
+                    </button>
                   </th>
                   <th className="px-6 py-4">AI Metadata</th>
-                  <th
-                    className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
-                    onClick={() => toggleSort('status')}
-                  >
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer group hover:text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+                      onClick={() => toggleSort('status')}
+                    >
                       Status <SortIcon column="status" />
-                    </div>
+                    </button>
                   </th>
-                  <th
-                    className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
-                    onClick={() => toggleSort('clipCount')}
-                  >
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer group hover:text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+                      onClick={() => toggleSort('clipCount')}
+                    >
                       Clips <SortIcon column="clipCount" />
-                    </div>
+                    </button>
                   </th>
-                  <th
-                    className="px-6 py-4 cursor-pointer group hover:text-zinc-200"
-                    onClick={() => toggleSort('createdAt')}
-                  >
-                    <div className="flex items-center gap-1">
+                  <th className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer group hover:text-zinc-200 uppercase text-xs font-semibold tracking-wider"
+                      onClick={() => toggleSort('createdAt')}
+                    >
                       Date Created <SortIcon column="createdAt" />
-                    </div>
+                    </button>
                   </th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -339,6 +355,7 @@ export default function ProjectsPage() {
                           <Eye className="w-4 h-4" />
                         </Link>
                         <button
+                          type="button"
                           onClick={() => setProjectToDelete(project)}
                           className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-md border border-transparent hover:border-red-500/20 transition-all"
                           title="Delete Project"
@@ -363,6 +380,7 @@ export default function ProjectsPage() {
               </span>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-sm text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -372,7 +390,8 @@ export default function ProjectsPage() {
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }).map((_, i) => (
                     <button
-                      key={i}
+                      type="button"
+                      key={`page-${i + 1}`}
                       onClick={() => setCurrentPage(i + 1)}
                       className={`w-8 h-8 rounded-md flex items-center justify-center text-sm transition-colors ${
                         currentPage === i + 1
@@ -385,6 +404,7 @@ export default function ProjectsPage() {
                   ))}
                 </div>
                 <button
+                  type="button"
                   onClick={() =>
                     setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
@@ -416,6 +436,7 @@ export default function ProjectsPage() {
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setProjectToDelete(null)}
                 disabled={isDeleting}
                 className="px-4 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-lg font-medium transition-colors"
@@ -423,6 +444,7 @@ export default function ProjectsPage() {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={async () => {
                   setIsDeleting(true);
                   try {

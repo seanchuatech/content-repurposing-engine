@@ -25,7 +25,7 @@ export default function UploadPage() {
   const [whisperModel, setWhisperModel] = useState('base');
   const [useYouTubeSubtitles, setUseYouTubeSubtitles] = useState(true);
   const [manualSegments, setManualSegments] = useState<
-    { start: string; end: string; title: string }[]
+    { id: string; start: string; end: string; title: string }[]
   >([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -44,7 +44,7 @@ export default function UploadPage() {
     setIsDragging(false);
   }, []);
 
-  const validateFile = (file: File) => {
+  const validateFile = useCallback((file: File) => {
     const validMimes = [
       'video/mp4',
       'video/quicktime',
@@ -71,18 +71,21 @@ export default function UploadPage() {
       return false;
     }
     return true;
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && validateFile(droppedFile)) {
-      setFile(droppedFile);
-      setErrorMessage('');
-    }
   }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+
+      const droppedFile = e.dataTransfer.files[0];
+      if (droppedFile && validateFile(droppedFile)) {
+        setFile(droppedFile);
+        setErrorMessage('');
+      }
+    },
+    [validateFile],
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -112,7 +115,7 @@ export default function UploadPage() {
             : undefined,
       };
 
-      let result: { projectId: string };
+      let result: { jobId: string; projectId: string };
       if (uploadType === 'file' && file) {
         result = await uploadVideo(file, options);
       } else {
@@ -141,23 +144,26 @@ export default function UploadPage() {
   };
 
   const addSegment = () => {
-    setManualSegments([...manualSegments, { start: '', end: '', title: '' }]);
+    setManualSegments([
+      ...manualSegments,
+      { id: crypto.randomUUID(), start: '', end: '', title: '' },
+    ]);
   };
 
-  const removeSegment = (index: number) => {
-    setManualSegments(
-      manualSegments.filter((_: unknown, i: number) => i !== index),
-    );
+  const removeSegment = (id: string) => {
+    setManualSegments(manualSegments.filter((seg) => seg.id !== id));
   };
 
   const updateSegment = (
-    index: number,
+    id: string,
     field: 'start' | 'end' | 'title',
     value: string,
   ) => {
-    const newSegments = [...manualSegments];
-    newSegments[index][field] = value;
-    setManualSegments(newSegments);
+    setManualSegments(
+      manualSegments.map((seg) =>
+        seg.id === id ? { ...seg, [field]: value } : seg,
+      ),
+    );
   };
 
   return (
@@ -292,7 +298,7 @@ export default function UploadPage() {
                 </p>
                 <p className="text-sm text-zinc-500">
                   {uploadType === 'file'
-                    ? `${(file!.size / (1024 * 1024)).toFixed(2)} MB`
+                    ? `${((file?.size ?? 0) / (1024 * 1024)).toFixed(2)} MB`
                     : 'YouTube Video'}
                 </p>
               </div>
@@ -324,10 +330,14 @@ export default function UploadPage() {
                   <div className="space-y-6 text-left animate-in fade-in slide-in-from-top-2 duration-300">
                     {/* Whisper Model Selection */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
+                      <label
+                        htmlFor="transcription-model"
+                        className="text-sm font-medium text-zinc-400"
+                      >
                         Transcription Model
                       </label>
                       <select
+                        id="transcription-model"
                         value={whisperModel}
                         onChange={(e) => setWhisperModel(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
@@ -373,10 +383,14 @@ export default function UploadPage() {
                     {/* Manual Clipping */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-sm font-medium text-zinc-400">
+                        <label
+                          htmlFor="manual-clips-btn"
+                          className="text-sm font-medium text-zinc-400"
+                        >
                           Manual Clips (Optional)
                         </label>
                         <button
+                          id="manual-clips-btn"
                           type="button"
                           onClick={addSegment}
                           className="text-xs bg-indigo-600/20 text-indigo-400 px-2 py-1 rounded hover:bg-indigo-600/30 transition-colors"
@@ -387,16 +401,16 @@ export default function UploadPage() {
 
                       {manualSegments.length > 0 ? (
                         <div className="space-y-3">
-                          {manualSegments.map((seg, idx) => (
+                          {manualSegments.map((seg) => (
                             <div
-                              key={idx}
+                              key={seg.id}
                               className="grid grid-cols-[1fr_80px_80px_32px] gap-2 items-end"
                             >
                               <input
                                 placeholder="Clip Title"
                                 value={seg.title}
                                 onChange={(e) =>
-                                  updateSegment(idx, 'title', e.target.value)
+                                  updateSegment(seg.id, 'title', e.target.value)
                                 }
                                 className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-xs text-white"
                               />
@@ -405,7 +419,7 @@ export default function UploadPage() {
                                 placeholder="Start"
                                 value={seg.start}
                                 onChange={(e) =>
-                                  updateSegment(idx, 'start', e.target.value)
+                                  updateSegment(seg.id, 'start', e.target.value)
                                 }
                                 className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-xs text-white"
                               />
@@ -414,13 +428,13 @@ export default function UploadPage() {
                                 placeholder="End"
                                 value={seg.end}
                                 onChange={(e) =>
-                                  updateSegment(idx, 'end', e.target.value)
+                                  updateSegment(seg.id, 'end', e.target.value)
                                 }
                                 className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1.5 text-xs text-white"
                               />
                               <button
                                 type="button"
-                                onClick={() => removeSegment(idx)}
+                                onClick={() => removeSegment(seg.id)}
                                 className="p-2 hover:bg-zinc-700 rounded-lg text-zinc-500 hover:text-red-400 transition-colors"
                               >
                                 <X className="w-4 h-4" />
@@ -514,9 +528,9 @@ export default function UploadPage() {
             title: 'Smart Crop',
             desc: 'Landscape converted to 9:16 portrait.',
           },
-        ].map((feat, i) => (
+        ].map((feat) => (
           <div
-            key={i}
+            key={feat.title}
             className="p-6 bg-zinc-900/30 border border-zinc-800/50 rounded-xl"
           >
             <h3 className="font-bold text-white mb-2">{feat.title}</h3>

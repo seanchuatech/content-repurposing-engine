@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   integer,
   pgTable,
   text,
@@ -81,7 +82,7 @@ export const videos = pgTable('videos', {
   filePath: text('file_path').notNull(),
   originalName: text('original_name').notNull(),
   mimeType: text('mime_type').notNull(),
-  durationSeconds: integer('duration_seconds'),
+  durationSeconds: doublePrecision('duration_seconds'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -100,7 +101,6 @@ export const jobs = pgTable('jobs', {
   status: text('status').default(JobState.PENDING).notNull(),
   progressPercent: integer('progress_percent').default(0).notNull(),
   failedReason: text('failed_reason'),
-  transcriptionBackend: text('transcription_backend'),
   whisperModel: text('whisper_model'),
   llmBackend: text('llm_backend'),
   llmModel: text('llm_model'),
@@ -125,8 +125,8 @@ export const clips = pgTable('clips', {
     .notNull()
     .references(() => jobs.id, { onDelete: 'cascade' }),
   filePath: text('file_path').notNull(),
-  startTime: integer('start_time').notNull(),
-  endTime: integer('end_time').notNull(),
+  startTime: doublePrecision('start_time').notNull(),
+  endTime: doublePrecision('end_time').notNull(),
   viralityScore: integer('virality_score'),
   title: text('title'),
   explanation: text('explanation'),
@@ -142,7 +142,6 @@ export const settings = pgTable('settings', {
     .unique()
     .references(() => users.id, { onDelete: 'cascade' }),
   whisperModel: text('whisper_model').default('whisper-large-v3').notNull(),
-  transcriptionBackend: text('transcription_backend').default('groq').notNull(),
   llmBackend: text('llm_backend').default('openai').notNull(),
   llmModel: text('llm_model').default('gpt-4o').notNull(),
   exportQuality: text('export_quality').default('high').notNull(),
@@ -166,7 +165,7 @@ export const downloads = pgTable('downloads', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at'),
 });
- 
+
 // 9. Stripe Events - For Idempotency
 export const stripeEvents = pgTable('stripe_events', {
   id: text('id').primaryKey(), // Stripe Event ID (e.g. evt_...)

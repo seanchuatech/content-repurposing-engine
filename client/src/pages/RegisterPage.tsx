@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, Loader2, ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2, Lock, Mail, User } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { register as registerApi } from '../lib/api';
 
@@ -11,7 +12,7 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,12 +21,15 @@ const RegisterPage: React.FC = () => {
     setError(null);
 
     try {
-      await registerApi({ name, email, password });
-      // After registration, we usually want to redirect to login or auto-login
-      // For now, let's just redirect to login
-      navigate('/login', { state: { message: 'Registration successful! Please sign in.' } });
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      const response = await registerApi({ name, email, password });
+      register(response.token, response.user);
+      navigate('/');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +65,10 @@ const RegisterPage: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-300 ml-1">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-slate-300 ml-1"
+                >
                   Full Name
                 </label>
                 <div className="mt-1 relative">
@@ -82,7 +89,10 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="email-address" className="block text-sm font-medium text-slate-300 ml-1">
+                <label
+                  htmlFor="email-address"
+                  className="block text-sm font-medium text-slate-300 ml-1"
+                >
                   Email address
                 </label>
                 <div className="mt-1 relative">
@@ -104,7 +114,10 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300 ml-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-300 ml-1"
+                >
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -148,7 +161,10 @@ const RegisterPage: React.FC = () => {
           <div className="mt-6 text-center">
             <span className="text-sm text-slate-500">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+              <Link
+                to="/login"
+                className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
                 Sign in
               </Link>
             </span>
@@ -157,13 +173,20 @@ const RegisterPage: React.FC = () => {
 
         <p className="px-8 text-center text-sm text-slate-500">
           By clicking continue, you agree to our{' '}
-          <a href="#" className="underline hover:text-slate-400 transition-colors">
+          <Link
+            to="/terms"
+            className="underline hover:text-slate-400 transition-colors"
+          >
             Terms of Service
-          </a>{' '}
+          </Link>{' '}
           and{' '}
-          <a href="#" className="underline hover:text-slate-400 transition-colors">
+          <Link
+            to="/privacy"
+            className="underline hover:text-slate-400 transition-colors"
+          >
             Privacy Policy
-          </a>.
+          </Link>
+          .
         </p>
       </div>
     </div>

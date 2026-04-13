@@ -1,16 +1,19 @@
+import { eq } from 'drizzle-orm';
 import { Elysia } from 'elysia';
-import { authGuard } from '../middleware/auth-guard';
-import { stripe } from '../lib/stripe';
 import { db } from '../db/client';
 import { subscriptions } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { stripe } from '../lib/stripe';
+import { authGuard } from '../middleware/auth-guard';
+import type { JWTPayload } from '../types/auth';
 
 export const billingRoutes = new Elysia({ prefix: '/billing' })
   .use(authGuard)
   .post(
     '/create-checkout-session',
-    async (ctx: any) => {
-      const { user, set } = ctx;
+    async ({
+      user,
+      set,
+    }: { user: JWTPayload | null; set: { status?: number | string } }) => {
       if (!user) {
         set.status = 401;
         return { error: 'Unauthorized' };
@@ -26,7 +29,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
       const [existingSub] = await db
         .select()
         .from(subscriptions)
-        .where(eq(subscriptions.userId, user.userId) as any)
+        .where(eq(subscriptions.userId, user?.userId))
         .limit(1);
 
       const customerId = existingSub?.stripeCustomerId;
@@ -56,8 +59,10 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
   )
   .post(
     '/create-portal-session',
-    async (ctx: any) => {
-      const { user, set } = ctx;
+    async ({
+      user,
+      set,
+    }: { user: JWTPayload | null; set: { status?: number | string } }) => {
       if (!user) {
         set.status = 401;
         return { error: 'Unauthorized' };
@@ -66,7 +71,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
       const [sub] = await db
         .select()
         .from(subscriptions)
-        .where(eq(subscriptions.userId, user.userId) as any)
+        .where(eq(subscriptions.userId, user?.userId))
         .limit(1);
 
       if (!sub || !sub.stripeCustomerId) {

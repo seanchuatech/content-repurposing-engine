@@ -30,6 +30,7 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
+  const [syncedJobId, setSyncedJobId] = useState<string | null>(null);
 
   // Editor State
   const [isEditing, setIsEditing] = useState(false);
@@ -64,21 +65,26 @@ export default function ProjectPage() {
   }, [id]);
 
   useEffect(() => {
-    if (liveJob?.status === 'COMPLETED' && currentJob?.id) {
+    // Only refresh data if the job has completed and we haven't synced this specific job yet
+    if (
+      liveJob?.status === 'COMPLETED' &&
+      currentJob?.id &&
+      syncedJobId !== currentJob.id
+    ) {
       getJob(currentJob.id).then((data) => {
         if (data.clips) {
           setClips(data.clips);
+          setSyncedJobId(currentJob.id); // Mark this job as synced
+
           // If the currently active clip was regenerated, update its path
           if (activeClip) {
-            const updated = data.clips.find(
-              (c: Clip) => c.id === activeClip.id,
-            );
+            const updated = data.clips.find((c: Clip) => c.id === activeClip.id);
             if (updated) setActiveClip(updated);
           }
         }
       });
     }
-  }, [liveJob?.status, currentJob?.id]);
+  }, [liveJob?.status, currentJob?.id, syncedJobId]); // Removed activeClip from deps
 
   const handlePlayClip = (clip: Clip) => {
     setActiveClip(clip);
@@ -192,7 +198,9 @@ export default function ProjectPage() {
                 controls
                 className="w-full h-full object-contain"
                 poster={`${STORAGE_BASE_URL}/storage/temp/${activeClip.jobId}/thumbnail.jpg`}
-              />
+              >
+                <track kind="captions" />
+              </video>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600 gap-4">
                 <FileVideo className="w-16 h-16 opacity-20" />
@@ -208,6 +216,7 @@ export default function ProjectPage() {
                   {activeClip.title}
                 </h2>
                 <button
+                  type="button"
                   onClick={startEditing}
                   className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-bold border border-zinc-700 transition-colors"
                 >
@@ -239,6 +248,7 @@ export default function ProjectPage() {
                   Edit Clip
                 </h2>
                 <button
+                  type="button"
                   onClick={() => setIsEditing(false)}
                   className="text-zinc-500 hover:text-white text-sm"
                 >
@@ -248,10 +258,14 @@ export default function ProjectPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="clip-title"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Title
                   </label>
                   <input
+                    id="clip-title"
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
@@ -261,10 +275,14 @@ export default function ProjectPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                    <label
+                      htmlFor="clip-start"
+                      className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                    >
                       Start Time (s)
                     </label>
                     <input
+                      id="clip-start"
                       type="number"
                       step="0.1"
                       value={editStart}
@@ -275,10 +293,14 @@ export default function ProjectPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                    <label
+                      htmlFor="clip-end"
+                      className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                    >
                       End Time (s)
                     </label>
                     <input
+                      id="clip-end"
                       type="number"
                       step="0.1"
                       value={editEnd}
@@ -293,6 +315,7 @@ export default function ProjectPage() {
 
               <div className="pt-4 flex gap-3">
                 <button
+                  type="button"
                   onClick={handleRegenerate}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20 transition-all"
                 >
@@ -326,6 +349,7 @@ export default function ProjectPage() {
             <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2 custom-scrollbar">
               {clips.map((clip) => (
                 <button
+                  type="button"
                   key={clip.id}
                   onClick={() => handlePlayClip(clip)}
                   className={`w-full text-left p-4 rounded-xl border transition-all group ${

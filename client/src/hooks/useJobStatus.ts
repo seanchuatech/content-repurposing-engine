@@ -11,7 +11,11 @@ export function useJobStatus(jobId: string | undefined) {
   useEffect(() => {
     if (!jobId) return;
 
-    const eventSource = new EventSource(`${API_BASE_URL}/jobs/${jobId}/events`);
+    const token = localStorage.getItem('auth_token');
+    const url = new URL(`${API_BASE_URL}/jobs/${jobId}/events`);
+    if (token) url.searchParams.set('token', token);
+
+    const eventSource = new EventSource(url.toString());
 
     eventSource.addEventListener('progress', (event) => {
       try {

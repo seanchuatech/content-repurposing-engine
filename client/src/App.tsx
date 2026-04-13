@@ -1,8 +1,8 @@
 import { Suspense, lazy } from 'react';
 import { Route, HashRouter as Router, Routes } from 'react-router-dom';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
@@ -29,7 +29,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            
+
             <Route
               element={
                 <ProtectedRoute>

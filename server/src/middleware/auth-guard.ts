@@ -1,59 +1,85 @@
-import { Elysia, t } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
 import { eq } from 'drizzle-orm';
+import { Elysia, t } from 'elysia';
 import { db } from '../db/client';
 import { subscriptions, users } from '../db/schema';
 import type { JWTPayload } from '../types/auth';
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is missing in production');
+}
 
 export const authGuard = new Elysia({ name: 'authGuard' })
   .use(
     jwt({
       name: 'jwt',
-      secret: process.env.JWT_SECRET || 'super-secret-key-change-me',
+      secret: process.env.JWT_SECRET as string,
     }),
   )
-  .derive({ as: 'global' }, async ({ jwt, headers: { authorization } }) => {
-    if (!authorization?.startsWith('Bearer ')) {
-      return { user: null };
-    }
+  .derive(
+    { as: 'global' },
+    async ({ jwt, headers: { authorization }, query }) => {
+      let token = '';
 
-    const token = authorization.split(' ')[1];
-    const payload = (await jwt.verify(token)) as unknown as JWTPayload;
+      if (authorization?.startsWith('Bearer ')) {
+        token = authorization!.split(' ')[1] || '';
+      } else if (query?.token) {
+        token = query.token as string;
+      }
 
-    if (!payload || !payload.userId) {
-      return { user: null };
-    }
+      if (!token) {
+        return { user: null };
+      }
 
-    // Optionally: Fetch full user from DB if needed for every request
-    // or just pass the payload. For now, let's just pass the payload
-    // to keep it fast, and only fetch DB when role verification or
-    // sub verification is explicitly needed.
-    return {
-      user: {
-        userId: payload.userId,
-        email: payload.email,
-        role: payload.role,
-      },
-    };
-  })
+      const payload = (await jwt.verify(token)) as unknown as JWTPayload;
+
+      if (!payload || !payload.userId) {
+        return { user: null };
+      }
+
+      // Optionally: Fetch full user from DB if needed for every request
+      // or just pass the payload. For now, let's just pass the payload
+      // to keep it fast, and only fetch DB when role verification or
+      // sub verification is explicitly needed.
+      return {
+        user: {
+          userId: payload.userId,
+          email: payload.email,
+          role: payload.role,
+        },
+      };
+    },
+  )
   .macro({
     isAuthenticated(value: boolean) {
       if (!value) return;
 
       return {
-        beforeHandle({ user, set }: { user: JWTPayload | null; set: any }) {
+        beforeHandle({
+          user,
+          set,
+        }: {
+          user?: JWTPayload | null;
+          set: { status?: number | string };
+        }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
           }
-        }
+        },
       };
     },
     requireSubscription(value: boolean) {
       if (!value) return;
 
       return {
-        async beforeHandle({ user, set }: { user: JWTPayload | null; set: any }) {
+        async beforeHandle({
+          user,
+          set,
+        }: {
+          user?: JWTPayload | null;
+          set: { status?: number | string };
+        }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
@@ -74,11 +100,12 @@ export const authGuard = new Elysia({ name: 'authGuard' })
             set.status = 403;
             return {
               error: 'Subscription Required',
-              message: 'An active subscription is required to access this feature.',
+              message:
+                'An active subscription is required to access this feature.',
               code: 'SUBSCRIPTION_REQUIRED',
             };
           }
-        }
+        },
       };
     },
   });

@@ -1,9 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
-import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
+import { authGuard } from '../middleware/auth-guard';
+import type { JWTPayload } from '../types/auth';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   .use(authGuard)
@@ -14,7 +15,9 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
       const job = await db
         .select()
         .from(jobs)
-        .where(and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)))
+        .where(
+          and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)),
+        )
         .limit(1)
         .then((res) => res[0]);
 
@@ -25,14 +28,14 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-          const resultClips = await db
-            .select()
-            .from(clips)
-            .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
-        }
-  
-        return { ...job, clips: resultClips };
-      },
+        resultClips = await db
+          .select()
+          .from(clips)
+          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
+      }
+
+      return { ...job, clips: resultClips };
+    },
     {
       params: t.Object({ projectId: t.String() }),
     },
@@ -41,11 +44,15 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   // Get job status via REST
   .get(
     '/:id',
-    async ({ params: { id }, user, set }) => {
+    async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
       const job = await db
         .select()
         .from(jobs)
-        .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
+        .where(
+          user!.role === 'admin'
+            ? eq(jobs.id, id)
+            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
+        )
         .limit(1)
         .then((res) => res[0]);
       if (!job) {
@@ -55,11 +62,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
 
       let resultClips: (typeof clips.$inferSelect)[] = [];
       if (job.status === JobState.COMPLETED) {
-          resultClips = await db
-            .select()
-            .from(clips)
-            .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
-        }
+        resultClips = await db
+          .select()
+          .from(clips)
+          .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
+      }
 
       return { ...job, clips: resultClips };
     },
@@ -81,7 +88,11 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
             failedReason: body.failedReason,
             updatedAt: new Date(),
           })
-          .where(and(eq(jobs.id, id), eq(jobs.userId, user!.userId)))
+          .where(
+            user!.role === 'admin'
+              ? eq(jobs.id, id)
+              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
+          )
           .returning()
           .then((res) => res[0]);
 
@@ -113,13 +124,13 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
     ({ params: { id }, set }) => {
       set.headers['Content-Type'] = 'text/event-stream';
       set.headers['Cache-Control'] = 'no-cache';
-      set.headers['Connection'] = 'keep-alive';
+      set.headers.Connection = 'keep-alive';
 
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
 
-          const sendEvent = (event: string, data: any) => {
+          const sendEvent = (event: string, data: unknown) => {
             controller.enqueue(
               encoder.encode(
                 `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,

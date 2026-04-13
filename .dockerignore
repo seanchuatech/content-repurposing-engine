@@ -26,3 +26,6 @@ logs/
 *.log
 storage/
 temp/
+
+# Infrastructure
+infra/

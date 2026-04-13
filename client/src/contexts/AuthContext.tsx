@@ -1,13 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../lib/api';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-  subscriptionStatus?: string;
-}
+import type { User } from '../types/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -15,15 +9,20 @@ interface AuthContextType {
   isLoading: boolean;
   subscriptionStatus: string | null;
   login: (token: string, user: User) => void;
+  register: (token: string, user: User) => void;
   logout: () => void;
   updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('auth_token'),
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           // Verify token by getting current user
-          const userData = await api.getMe(token);
+          const userData = await api.getMe();
           setUser(userData);
         } catch (error) {
           console.error('Failed to initialize auth:', error);
@@ -50,6 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
   };
 
+  const register = (newToken: string, userData: User) => {
+    localStorage.setItem('auth_token', newToken);
+    setToken(newToken);
+    setUser(userData);
+  };
+
   const logout = () => {
     localStorage.removeItem('auth_token');
     setToken(null);
@@ -63,7 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const subscriptionStatus = user?.subscriptionStatus || null;
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, subscriptionStatus, login, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        subscriptionStatus,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

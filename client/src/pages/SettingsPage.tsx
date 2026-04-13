@@ -1,4 +1,4 @@
-import { Cpu, Save, Shield, Sliders, Sparkles, CreditCard } from 'lucide-react';
+import { Cpu, CreditCard, Save, Shield, Sliders, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
@@ -34,7 +34,6 @@ export default function SettingsPage() {
   const { token, subscriptionStatus } = useAuth();
   const [settings, setSettings] = useState({
     whisperModel: 'whisper-large-v3',
-    transcriptionBackend: 'groq' as const,
     llmBackend: 'openai' as 'openai' | 'gemini',
     llmModel: 'gpt-4o',
     exportQuality: 'high',
@@ -51,16 +50,18 @@ export default function SettingsPage() {
     async function fetchSettings() {
       if (!token) return;
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/settings`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/settings`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
         if (response.ok) {
           const data = await response.json();
           setSettings({
             whisperModel: data.whisperModel,
-            transcriptionBackend: 'groq',
             llmBackend:
               data.llmBackend === 'ollama'
                 ? 'openai'
@@ -93,14 +94,17 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/settings`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/settings`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(settings),
         },
-        body: JSON.stringify(settings),
-      });
+      );
       if (response.ok) {
         setMessage({ type: 'success', text: 'Settings saved successfully' });
       } else {
@@ -147,7 +151,8 @@ export default function SettingsPage() {
     );
   }
 
-  const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+  const isSubscribed =
+    subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
 
   return (
     <div className="max-w-4xl">
@@ -181,25 +186,36 @@ export default function SettingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-400">Status:</span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                  isSubscribed
-                    ? 'bg-green-500/10 text-green-400 ring-green-500/20'
-                    : 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20'
-                }`}>
+                <span className="text-sm font-medium text-zinc-400">
+                  Status:
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                    isSubscribed
+                      ? 'bg-green-500/10 text-green-400 ring-green-500/20'
+                      : 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20'
+                  }`}
+                >
                   {isSubscribed ? 'Pro Active' : 'Basic Tier'}
                 </span>
               </div>
               <p className="mt-1 text-xs text-zinc-500">
-                {isSubscribed ? 'You have full access to all AI features.' : 'Upgrade to Pro to unlock AI transcription and reframing.'}
+                {isSubscribed
+                  ? 'You have full access to all AI features.'
+                  : 'Upgrade to Pro to unlock AI transcription and reframing.'}
               </p>
             </div>
             <button
+              type="button"
               onClick={isSubscribed ? handlePortal : handleUpgrade}
               disabled={billingLoading}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50"
             >
-              {billingLoading ? 'Loading...' : isSubscribed ? 'Manage Billing' : 'Upgrade to Pro'}
+              {billingLoading
+                ? 'Loading...'
+                : isSubscribed
+                  ? 'Manage Billing'
+                  : 'Upgrade to Pro'}
             </button>
           </div>
         </div>
@@ -215,12 +231,16 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="transcription-backend"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Backend
                   </label>
                   <select
+                    id="transcription-backend"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors opacity-70 cursor-not-allowed"
-                    value={settings.transcriptionBackend}
+                    value="groq"
                     disabled
                   >
                     <option value="groq">Groq (Cloud / Free Tier)</option>
@@ -228,21 +248,21 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="transcription-model"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Model
                   </label>
                   <select
+                    id="transcription-model"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.whisperModel}
                     onChange={(e) =>
                       setSettings({ ...settings, whisperModel: e.target.value })
                     }
                   >
-                    {(
-                      WHISPER_MODELS[
-                        settings.transcriptionBackend as keyof typeof WHISPER_MODELS
-                      ] || []
-                    ).map((model) => (
+                    {(WHISPER_MODELS.groq || []).map((model) => (
                       <option key={model.value} value={model.value}>
                         {model.label}
                       </option>
@@ -261,14 +281,20 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="llm-provider"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     LLM Provider
                   </label>
                   <select
+                    id="llm-provider"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.llmBackend}
                     onChange={(e) =>
-                      handleProviderChange(e.target.value as 'openai' | 'gemini')
+                      handleProviderChange(
+                        e.target.value as 'openai' | 'gemini',
+                      )
                     }
                   >
                     <option value="openai">OpenAI (Cloud)</option>
@@ -277,10 +303,14 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">
+                  <label
+                    htmlFor="llm-model"
+                    className="block text-xs font-bold text-zinc-500 uppercase mb-2"
+                  >
                     Model Name
                   </label>
                   <select
+                    id="llm-model"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:border-indigo-500 outline-none transition-colors"
                     value={settings.llmModel}
                     onChange={(e) =>
@@ -291,7 +321,7 @@ export default function SettingsPage() {
                       LLM_MODELS[
                         settings.llmBackend as keyof typeof LLM_MODELS
                       ] || []
-                    ).map((model: any) => (
+                    ).map((model: { value: string; label: string }) => (
                       <option key={model.value} value={model.value}>
                         {model.label}
                       </option>
@@ -313,7 +343,9 @@ export default function SettingsPage() {
                   <button
                     key={q}
                     type="button"
-                    onClick={() => setSettings({ ...settings, exportQuality: q })}
+                    onClick={() =>
+                      setSettings({ ...settings, exportQuality: q })
+                    }
                     className={`p-4 rounded-xl border font-bold capitalize transition-all ${
                       settings.exportQuality === q
                         ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'

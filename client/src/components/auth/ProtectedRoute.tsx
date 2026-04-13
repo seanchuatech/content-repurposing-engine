@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,7 +13,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
@@ -22,9 +22,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const hasSubscription = 
-    user.role === 'admin' || 
-    user.subscriptionStatus === 'active' || 
+  const hasSubscription =
+    user.role === 'admin' ||
+    user.subscriptionStatus === 'active' ||
     user.subscriptionStatus === 'trialing';
 
   if (!hasSubscription && location.pathname !== '/pricing') {

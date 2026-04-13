@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { login as loginApi } from '../lib/api';
 
@@ -14,7 +15,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   useEffect(() => {
     // Handle OAuth Callback from URL parameters (hash or query)
@@ -47,8 +49,12 @@ const LoginPage: React.FC = () => {
       const response = await loginApi({ email, password });
       login(response.token, response.user);
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +95,10 @@ const LoginPage: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="email-address" className="block text-sm font-medium text-slate-300 ml-1">
+                <label
+                  htmlFor="email-address"
+                  className="block text-sm font-medium text-slate-300 ml-1"
+                >
                   Email address
                 </label>
                 <div className="mt-1 relative">
@@ -111,7 +120,10 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300 ml-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-300 ml-1"
+                >
                   Password
                 </label>
                 <div className="mt-1 relative">
@@ -141,13 +153,19 @@ const LoginPage: React.FC = () => {
                   type="checkbox"
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-800 rounded bg-slate-950"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-400">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-slate-400"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="/" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                <a
+                  href="/"
+                  className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
                   Forgot your password?
                 </a>
               </div>
@@ -172,10 +190,12 @@ const LoginPage: React.FC = () => {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800"></div>
+                <div className="w-full border-t border-slate-800" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-900 text-slate-500">Or sign in with</span>
+                <span className="px-2 bg-slate-900 text-slate-500">
+                  Or sign in with
+                </span>
               </div>
             </div>
 
@@ -185,7 +205,11 @@ const LoginPage: React.FC = () => {
                 className="w-full inline-flex justify-center py-3 px-4 rounded-xl border border-slate-800 bg-slate-950 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
                 onClick={handleGoogleLogin}
               >
-                <img className="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" />
+                <img
+                  className="h-5 w-5 mr-2"
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                />
                 Google
               </button>
             </div>
@@ -194,7 +218,10 @@ const LoginPage: React.FC = () => {
 
         <p className="mt-4 text-center text-sm text-slate-400">
           Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+          <Link
+            to="/register"
+            className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
             Start your free trial
           </Link>
         </p>

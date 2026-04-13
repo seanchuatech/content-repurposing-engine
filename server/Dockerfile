@@ -2,14 +2,19 @@ FROM oven/bun:latest
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+COPY packages/ ./packages/
 
-# Install dependencies
+# Install dependencies at the workspace root
 RUN bun install
 
-# Copy source code
-COPY . .
+# Copy source code for server
+COPY server ./server
+
+# Change workdir to server to run the application
+WORKDIR /app/server
 
 # Expose port
 EXPOSE 3000

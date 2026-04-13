@@ -1,7 +1,9 @@
 from enum import Enum
+
 from pydantic import BaseModel
 
-class JobState(str, Enum):
+
+class JobState(str, Enum):  # noqa: UP042
     PENDING = "PENDING"
     TRANSCRIBING = "TRANSCRIBING"
     ANALYZING = "ANALYZING"
@@ -11,6 +13,7 @@ class JobState(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
+
 class JobPayload(BaseModel):
     jobId: str
     projectId: str
@@ -19,7 +22,6 @@ class JobPayload(BaseModel):
     whisperModel: str | None = None
     manualSegments: list[dict] | None = None
     useYouTubeSubtitles: bool = True
-    transcriptionBackend: str | None = None
     llmBackend: str | None = None
     llmModel: str | None = None
     onlyClipId: str | None = None

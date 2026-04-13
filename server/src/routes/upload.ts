@@ -2,11 +2,12 @@ import path from 'node:path';
 import { and, eq } from 'drizzle-orm';
 import { Elysia, t } from 'elysia';
 import { v4 as uuidv4 } from 'uuid';
-import { authGuard } from '../middleware/auth-guard';
 import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { jobs, projects, settings, videos } from '../db/schema';
-import { dispatchVideoProcessingJob } from '../queue/producers';
+import { getDispatcher } from '../dispatcher';
+import { getStorage } from '../lib/storage';
+import { authGuard } from '../middleware/auth-guard';
 
 export const uploadRoutes = new Elysia({ prefix: '/upload' })
   .use(authGuard)
@@ -20,7 +21,14 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         return { error: 'No video file uploaded' };
       }
 
-      // 2. Validate MIME type or extension
+      // 2. Limit file size (500MB)
+      const MAX_SIZE = 500 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        set.status = 413;
+        return { error: 'File too large. Maximum size is 500MB.' };
+      }
+
+      // 3. Validate MIME type or extension
       const validMimes = [
         'video/mp4',
         'video/quicktime',
@@ -41,38 +49,42 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
       }
 
       try {
-        // 3. Save the uploaded file to disk
+        // 4. Save the uploaded file to disk
         const fileId = uuidv4();
         const extension = path.extname(file.name) || '.mp4';
         const fileName = `${fileId}${extension}`;
         const relativePath = path.join('storage', 'uploads', fileName);
-        const absolutePath = path.resolve(process.cwd(), '..', relativePath);
 
-        await Bun.write(absolutePath, file);
+        await getStorage().save(relativePath, file);
 
-        // 4. Create new Project
+        // Sanitize the original filename for the DB title
+        const sanitizedTitle = file.name
+          .replace(/[^a-zA-Z0-9\s._-]/g, '')
+          .trim();
+
+        // 5. Create new Project
         const projectId = uuidv4();
         await db.insert(projects).values({
           id: projectId,
           userId: user!.userId,
-          title: `Project: ${file.name}`,
+          title: `Project: ${sanitizedTitle}`,
         });
- 
-        // 5. Create Video Entry
+
+        // 6. Create Video Entry
         const videoId = uuidv4();
         await db.insert(videos).values({
           id: videoId,
           userId: user!.userId,
           projectId,
           filePath: relativePath,
-          originalName: file.name,
+          originalName: sanitizedTitle,
           mimeType: file.type,
         });
 
         const globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.id, 'global'))
+          .where(eq(settings.userId, user!.userId))
           .limit(1)
           .then((res) => res[0]);
 
@@ -88,21 +100,19 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           manualJobData: body.manualSegments
             ? JSON.stringify(body.manualSegments)
             : null,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });
 
         // 7. Dispatch the background processing job
-        await dispatchVideoProcessingJob({
+        await getDispatcher().dispatchVideoProcessing({
           jobId,
           projectId,
           videoId,
           filePath: relativePath,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });
@@ -139,7 +149,10 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
     '/youtube',
     async ({ body, user, set }) => {
       const { url } = body;
-      if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+      const youtubeRegex =
+        /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})/;
+
+      if (!url || !youtubeRegex.test(url)) {
         set.status = 400;
         return { error: 'Invalid YouTube URL' };
       }
@@ -155,7 +168,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           userId: user!.userId,
           title: `YouTube Import: ${url}`,
         });
- 
+
         // Create Video Entry (filePath will be updated by worker after download)
         await db.insert(videos).values({
           id: videoId,
@@ -169,7 +182,7 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
         const globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.id, 'global'))
+          .where(eq(settings.userId, user!.userId))
           .limit(1)
           .then((res) => res[0]);
 
@@ -184,14 +197,13 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           manualJobData: body.manualSegments
             ? JSON.stringify(body.manualSegments)
             : null,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });
 
         // Dispatch Job with URL
-        await dispatchVideoProcessingJob({
+        await getDispatcher().dispatchVideoProcessing({
           jobId,
           projectId,
           videoId,
@@ -199,7 +211,6 @@ export const uploadRoutes = new Elysia({ prefix: '/upload' })
           whisperModel: body.whisperModel || globalSettings?.whisperModel,
           manualSegments: body.manualSegments,
           useYouTubeSubtitles: body.useYouTubeSubtitles,
-          transcriptionBackend: globalSettings?.transcriptionBackend,
           llmBackend: globalSettings?.llmBackend,
           llmModel: globalSettings?.llmModel,
         });

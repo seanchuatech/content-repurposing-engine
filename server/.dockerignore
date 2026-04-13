@@ -9,3 +9,6 @@ content-engine.db*
 
 # AI / Internal Documentation
 .agents/
+
+# Infrastructure
+infra/

@@ -20,23 +20,23 @@ formatting all at scale, locally or in the cloud.
   engagement hooks and insight density.
 - **Auto Re-framing & Captioning**: Converts landscape 16:9 to portrait 9:16
   format with auto-generated hardcoded subtitles.
-- **Resilient Queueing**: BullMQ on top of Redis to guarantee job
-  persistency—workers seamlessly pick up, report progress via SSE, or retry
-  failed jobs securely.
+- **Event-Driven Architecture**: Ephemeral workers are spawned on-demand for processing, automatically reporting progress via SSE and cleanly exiting upon completion, ensuring efficient resource usage without long-running daemons.
 
 ## Tech Stack Overview
 
 - **Client**: React 18, Vite, TypeScript, Tailwind CSS
-- **Server**: Bun, Elysia, BullMQ, SQLite (Drizzle ORM)
-- **Workers**: Python 3.12+, Whisper, FFmpeg, LLM API
-- **Infrastructure**: Docker & Docker Compose for caching/queuing
+- **Server**: Bun, Elysia, PostgreSQL (Drizzle ORM)
+- **Workers**: Python 3.12+, Whisper, FFmpeg, LLM API, boto3
+- **Infrastructure**: Docker Compose (Local Database) / Terraform (AWS ECS & S3)
 
 ## Getting Started Locally
 
+> **💡 No AWS Emulator (like LocalStack) is required for local development!** 
+> The system automatically uses local file storage and native subprocess spawning when running locally, providing an identical developer experience without the cloud overhead.
+
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) (for Redis and background
-  processes)
+- [Docker](https://docs.docker.com/get-docker/) (for PostgreSQL)
 - [Node.js](https://nodejs.org/) (for Frontend UI build) &
   [Bun](https://bun.sh/) (for API backend)
 - [Python 3.12+](https://www.python.org/) &
@@ -60,8 +60,7 @@ Fill in `.env` with API keys and preferred configuration:
 
 ### 2. The Fast Way: Native Runner (Recommended)
 
-You can boot up the entire stack concurrently (Docker Redis, Bun Server, Python
-Worker, and Vite Client) using our native running script.
+You can boot up the entire stack concurrently using our native running script. This will start the database, run the backend, and start the frontend.
 
 Ensure you are at the project root and run:
 
@@ -69,19 +68,17 @@ Ensure you are at the project root and run:
 ./dev.sh
 ```
 
-This requires `npx` (which comes with Node.js) to multiplex the terminal output,
-allowing you to see logs from the Client, Server, and Worker in one unified
-view.
+**Note on Workers:** You do not need to manually start a worker process. When a job is triggered (like a video upload), the Bun API server will automatically spawn an ephemeral Python worker in the background to handle the task, simulating the AWS ECS Fargate environment locally!
 
 ### Or, The Manual Way (Step-by-Step)
 
 If you prefer running services in separate terminal tabs for easier isolated
 debugging:
 
-**Start Redis:**
+**Start PostgreSQL Database:**
 
 ```bash
-docker-compose up -d redis
+docker-compose up -d postgres db-ui
 ```
 
 **Run the Backend API Server:**
@@ -90,14 +87,6 @@ docker-compose up -d redis
 cd server
 bun install
 bun run dev
-```
-
-**Run the Pipeline Worker:**
-
-```bash
-cd workers
-uv sync
-uv run python src/main.py
 ```
 
 **Run the Client Web Interface:**
@@ -125,7 +114,7 @@ upload processing directly to final edited clips seamlessly!
 # Video Processing Workers
 
 The worker service handles compute-heavy AI tasks: transcription, viral moment
-analysis, clipping, and captioning.
+analysis, clipping, and captioning. In production, these run as isolated AWS ECS Fargate tasks. Locally, they are spawned as one-shot background processes via the API server.
 
 ## 🛠️ Prerequisites
 
@@ -134,31 +123,6 @@ analysis, clipping, and captioning.
 - **yt-dlp** (installed on host for local run)
 - **[uv](https://github.com/astral-sh/uv)** (recommended for dependency
   management)
-
-## 🚀 How to Run
-
-### Option 1: Docker (Recommended)
-
-1. From the project root:
-   ```bash
-   docker compose up --build -d worker
-   ```
-
-### Option 2: Local Development
-...
-
-Use this for faster iteration and debugging.
-
-1. **Install dependencies**:
-   ```bash
-   uv sync
-   ```
-2. **Environment Setup**: Ensure your root `.env` has the correct `OLLAMA_URL`
-   (usually `http://localhost:11434`).
-3. **Start the worker**:
-   ```bash
-   uv run src/main.py
-   ```
 
 ## ⚙️ Configuration
 
@@ -172,7 +136,7 @@ Key environment variables in `.env`:
 
 ## 📁 Pipeline Stages
 
-1. **Transcribe**: Groq Cloud API (Whisper Large V3).
+1. **Transcribe**: Groq Cloud API (Whisper Large V3) or Local Whisper.
 2. **Analyze**: Gemini/OpenAI virality scoring.
 3. **Clip**: FFmpeg segment extraction.
 4. **Caption**: Hardcoded subtitle burn-in.

@@ -8,6 +8,7 @@ from groq import Groq
 from src.config import config
 from src.logger import logger
 
+
 def _extract_audio_for_groq(video_path: str) -> str:
     """
     Extracts audio from video and compresses to FLAC (16kHz mono) to stay
@@ -17,30 +18,38 @@ def _extract_audio_for_groq(video_path: str) -> str:
     output_path = os.path.join(temp_dir, "audio.flac")
 
     cmd = [
-        "ffmpeg", "-y",
-        "-i", video_path,
-        "-ar", "16000",     # 16kHz sample rate (Whisper native)
-        "-ac", "1",         # mono
-        "-map", "0:a",      # audio track only
-        "-c:a", "flac",     # lossless compression
-        output_path
+        "ffmpeg",
+        "-y",
+        "-i",
+        video_path,
+        "-ar",
+        "16000",  # 16kHz sample rate (Whisper native)
+        "-ac",
+        "1",  # mono
+        "-map",
+        "0:a",  # audio track only
+        "-c:a",
+        "flac",  # lossless compression
+        output_path,
     ]
 
     logger.info(f"Extracting audio for Groq: {' '.join(cmd)}")
     try:
         subprocess.run(cmd, check=True, capture_output=True, timeout=300)
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("FFmpeg audio extraction timed out (300s limit)")
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError("FFmpeg audio extraction timed out (300s limit)") from e
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg audio extraction failed: {e.stderr.decode()}")
+        raise RuntimeError(
+            f"FFmpeg audio extraction failed: {e.stderr.decode()}"
+        ) from e
 
     file_size_mb = os.path.getsize(output_path) / (1024 * 1024)
     logger.info(f"Extracted audio: {file_size_mb:.1f} MB")
 
     if file_size_mb > 25:
         logger.warning(
-            f"Audio file is {file_size_mb:.1f} MB, exceeding Groq's 25MB free-tier limit. "
-            "Transcription may fail."
+            f"Audio file is {file_size_mb:.1f} MB, exceeding Groq's 25MB free-tier "
+            "limit. Transcription may fail."
         )
 
     return output_path
@@ -51,38 +60,71 @@ def _normalize_groq_response(groq_result) -> dict:
     Maps Groq's verbose_json transcription response to the standard dict format
     expected by downstream pipeline stages.
     """
+    # groq_result could be a dict or an object depending on the SDK version
+    if isinstance(groq_result, dict):
+        segments_data = groq_result.get("segments", [])
+    else:
+        segments_data = getattr(groq_result, "segments", []) or []
+
     segments = []
-    for seg in (groq_result.segments or []):
-        segment = {
-            "id": seg.id,
-            "start": seg.start,
-            "end": seg.end,
-            "text": seg.text,
-        }
-        # Map word-level timestamps if available
-        if hasattr(seg, "words") and seg.words:
-            segment["words"] = [
-                {
-                    "word": w.word,
-                    "start": w.start,
-                    "end": w.end,
-                }
-                for w in seg.words
-            ]
-        segments.append(segment)
+    for seg in segments_data:
+        # seg could be a dict
+        if isinstance(seg, dict):
+            segment = {
+                "id": seg.get("id"),
+                "start": seg.get("start"),
+                "end": seg.get("end"),
+                "text": seg.get("text"),
+            }
+            words_data = seg.get("words")
+            if words_data:
+                segment["words"] = [
+                    {
+                        "word": w.get("word") if isinstance(w, dict) else w.word,
+                        "start": w.get("start") if isinstance(w, dict) else w.start,
+                        "end": w.get("end") if isinstance(w, dict) else w.end,
+                    }
+                    for w in words_data
+                ]
+            segments.append(segment)
+        else:
+            segment = {
+                "id": seg.id,
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text,
+            }
+            if hasattr(seg, "words") and seg.words:
+                segment["words"] = [
+                    {
+                        "word": w.word if not isinstance(w, dict) else w.get("word"),
+                        "start": w.start if not isinstance(w, dict) else w.get("start"),
+                        "end": w.end if not isinstance(w, dict) else w.get("end"),
+                    }
+                    for w in seg.words
+                ]
+            segments.append(segment)
+
+    if isinstance(groq_result, dict):
+        text_val = groq_result.get("text", "")
+        lang_val = groq_result.get("language", "en")
+    else:
+        text_val = getattr(groq_result, "text", "")
+        lang_val = getattr(groq_result, "language", "en")
 
     return {
-        "text": groq_result.text,
+        "text": text_val,
         "segments": segments,
-        "language": getattr(groq_result, "language", "en"),
+        "language": lang_val,
     }
 
 
-def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
+def groq_transcribe_sync(video_path: str, model_name: str | None = None) -> dict:
     """
     Transcribes audio using the Groq API (cloud-hosted Whisper).
     """
-    target_model = model_name or "whisper-large-v3"
+    groq_models = ["whisper-large-v3", "whisper-large-v3-turbo"]
+    target_model = model_name if model_name in groq_models else "whisper-large-v3"
     logger.info(f"Transcribing with Groq ({target_model})...")
 
     if not config.GROQ_API_KEY:
@@ -107,7 +149,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
 
         # 3. Normalize to pipeline format
         result = _normalize_groq_response(transcription)
-        logger.info(f"Groq transcription complete. {len(result.get('segments', []))} segments found.")
+        num_segments = len(result.get("segments", []))
+        logger.info(f"Groq transcription complete. {num_segments} segments found.")
         return result
 
     finally:
@@ -119,7 +162,8 @@ def groq_transcribe_sync(video_path: str, model_name: str = None) -> dict:
         except OSError:
             pass
 
-async def transcribe(video_path: str, model_name: str = None, backend: str = None) -> dict:
+
+async def transcribe(video_path: str, model_name: str | None = None) -> dict:
     """
     Transcription router. All transcription is now handled by Groq.
     """
