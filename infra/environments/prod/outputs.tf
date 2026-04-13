@@ -32,3 +32,7 @@ output "s3_spa_bucket" {
 output "s3_media_bucket" {
   value = module.storage.media_bucket_name
 }
+
+output "cloudfront_distribution_id" {
+  value = module.cdn.cloudfront_distribution_id
+}
