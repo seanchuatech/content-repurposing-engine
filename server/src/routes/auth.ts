@@ -6,6 +6,7 @@ import { AuthService } from '../services/auth-service';
 import type { JWTPayload } from '../types/auth';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
+  .use(authGuard)
   .get(
     '/google',
     async ({
@@ -249,7 +250,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       }),
     },
   )
-  .use(authGuard)
   .get(
     '/me',
     async ({
