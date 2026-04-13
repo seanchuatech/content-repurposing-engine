@@ -11,7 +11,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   .use(authGuard)
   // Get all projects with rich metadata for the Data Table
   .get('/', async ({ user }) => {
-    const userId = user.userId;
+    const userId = user!.userId;
     const projectsWithDetails = await db
       .select({
         project: projects,
@@ -63,11 +63,11 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get a single project
   .get(
     '/:id',
-    async ({ params: { id }, user, set }) => {
+    async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
       const project = await db
         .select()
         .from(projects)
-        .where(and(eq(projects.id, id), eq(projects.userId, user.userId)))
+        .where(and(eq(projects.id, id), eq(projects.userId, user!.userId)))
         .limit(1)
         .then((res) => res[0]);
       if (!project) {
@@ -84,13 +84,13 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Create a new project
   .post(
     '/',
-    async ({ body, user }) => {
+    async ({ body, user }: { body: any, user: any }) => {
       const id = uuidv4();
       const newProject = await db
         .insert(projects)
         .values({
           id,
-          userId: user.userId,
+          userId: user!.userId,
           title: body.title,
         })
         .returning()
@@ -106,10 +106,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Delete a project
   .delete(
     '/:id',
-    async ({ params: { id }, user, set }) => {
+    async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
       const deletedProject = await db
         .delete(projects)
-        .where(and(eq(projects.id, id), eq(projects.userId, user.userId)))
+        .where(and(eq(projects.id, id), eq(projects.userId, user!.userId)))
         .returning()
         .then((res) => res[0]);
       if (!deletedProject) {
@@ -130,8 +130,8 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       try {
         const clipId = uuidv4();
 
-        let targetUserId = user.userId;
-        if (user.role === 'admin' && body.jobId) {
+        let targetUserId = user!.userId;
+        if (user!.role === 'admin' && body.jobId) {
           const job = await db
             .select()
             .from(jobs)
@@ -197,14 +197,14 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Get a single clip
   .get(
     '/clips/:clipId',
-    async ({ params: { clipId }, user, set }) => {
+    async ({ params: { clipId }, user, set }: { params: { clipId: string }, user: any, set: any }) => {
       const clip = await db
         .select()
         .from(clips)
         .where(
-          user.role === 'admin'
+          user!.role === 'admin'
             ? eq(clips.id, clipId)
-            : and(eq(clips.id, clipId), eq(clips.userId, user.userId)),
+            : and(eq(clips.id, clipId), eq(clips.userId, user!.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -222,7 +222,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Update a clip's metadata or timestamps
   .patch(
     '/clips/:clipId',
-    async ({ params: { clipId }, user, body, set }) => {
+    async ({ params: { clipId }, user, body, set }: { params: { clipId: string }, user: any, body: any, set: any }) => {
       try {
         const updatedClip = await db
           .update(clips)
@@ -232,7 +232,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
             title: body.title,
             updatedAt: new Date(),
           })
-          .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
+          .where(and(eq(clips.id, clipId), eq(clips.userId, user!.userId)))
           .returning()
           .then((res) => res[0]);
 
@@ -261,7 +261,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
   // Trigger regeneration of a clip
   .post(
     '/clips/:clipId/regenerate',
-    async ({ params: { clipId }, user, set }) => {
+    async ({ params: { clipId }, user, set }: { params: { clipId: string }, user: any, set: any }) => {
       if (!user) {
         set.status = 401;
         return { error: 'Unauthorized' };
@@ -270,7 +270,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         const clip = await db
           .select()
           .from(clips)
-          .where(and(eq(clips.id, clipId), eq(clips.userId, user.userId)))
+          .where(and(eq(clips.id, clipId), eq(clips.userId, user!.userId)))
           .limit(1)
           .then((res) => res[0]);
         if (!clip) {
@@ -282,7 +282,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
           .select()
           .from(videos)
           .where(
-            and(eq(videos.id, clip.videoId), eq(videos.userId, user.userId)),
+            and(eq(videos.id, clip.videoId), eq(videos.userId, user!.userId)),
           )
           .limit(1)
           .then((res) => res[0]);
@@ -294,7 +294,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         const globalSettings = await db
           .select()
           .from(settings)
-          .where(eq(settings.userId, user.userId))
+          .where(eq(settings.userId, user!.userId))
           .limit(1)
           .then((res) => res[0]);
 
@@ -302,7 +302,7 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         const jobId = uuidv4();
         await db.insert(jobs).values({
           id: jobId,
-          userId: user.userId,
+          userId: user!.userId,
           projectId: clip.projectId,
           videoId: clip.videoId,
           status: JobState.PENDING,

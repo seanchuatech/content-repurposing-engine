@@ -110,7 +110,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
             .set({
               status,
               currentPeriodEnd: new Date(
-                subscription.current_period_end * 1000,
+                (subscription as any).current_period_end * 1000,
               ),
               cancelAtPeriodEnd: subscription.cancel_at_period_end,
               updatedAt: new Date(),
@@ -123,7 +123,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
 
         case 'invoice.payment_succeeded': {
           const invoice = event.data.object as Stripe.Invoice;
-          const stripeSubscriptionId = invoice.subscription as string;
+          const stripeSubscriptionId = (invoice as any).subscription as string;
 
           if (stripeSubscriptionId) {
             await db
@@ -141,7 +141,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
 
         case 'invoice.payment_failed': {
           const invoice = event.data.object as Stripe.Invoice;
-          const stripeSubscriptionId = invoice.subscription as string;
+          const stripeSubscriptionId = (invoice as any).subscription as string;
 
           if (stripeSubscriptionId) {
             await db
@@ -187,7 +187,7 @@ export const webhookRoutes = new Elysia({ prefix: '/webhooks' }).post(
 
         case 'invoice.payment_action_required': {
           const invoice = event.data.object as Stripe.Invoice;
-          const stripeSubscriptionId = invoice.subscription as string;
+          const stripeSubscriptionId = (invoice as any).subscription as string;
 
           if (stripeSubscriptionId) {
             await db

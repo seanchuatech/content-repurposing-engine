@@ -14,7 +14,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
     return await db
       .select()
       .from(downloads)
-      .where(eq(downloads.userId, user?.userId))
+      .where(eq(downloads.userId, user!.userId))
       .orderBy(desc(downloads.createdAt));
   })
 
@@ -41,7 +41,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
 
       await db.insert(downloads).values({
         id: downloadId,
-        userId: user?.userId,
+        userId: user!.userId,
         youtubeUrl: body.url,
         quality: body.quality,
         status: 'PENDING',
@@ -71,11 +71,11 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   )
 
   // Get status
-  .get('/:id', async ({ params: { id }, user, set }) => {
+  .get('/:id', async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
     const record = await db
       .select()
       .from(downloads)
-      .where(and(eq(downloads.id, id), eq(downloads.userId, user?.userId)))
+      .where(and(eq(downloads.id, id), eq(downloads.userId, user!.userId)))
       .limit(1)
       .then((res) => res[0]);
     if (!record) {
@@ -90,7 +90,7 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
     '/:id',
     async ({ params: { id }, user, body, set }) => {
       // Security: Only workers (admins) can update download metadata/path
-      if (user?.role !== 'admin') {
+      if (user!.role !== 'admin') {
         set.status = 403;
         return { error: 'Forbidden: Only workers can update download status' };
       }
@@ -125,11 +125,11 @@ export const downloadRoutes = new Elysia({ prefix: '/download' })
   )
 
   // Download file
-  .get('/:id/file', async ({ params: { id }, user, set }) => {
+  .get('/:id/file', async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
     const record = await db
       .select()
       .from(downloads)
-      .where(and(eq(downloads.id, id), eq(downloads.userId, user?.userId)))
+      .where(and(eq(downloads.id, id), eq(downloads.userId, user!.userId)))
       .limit(1)
       .then((res) => res[0]);
     if (!record || !record.filePath) {

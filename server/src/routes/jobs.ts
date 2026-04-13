@@ -4,7 +4,7 @@ import { JobState } from '../../../packages/shared-types/index.ts';
 import { db } from '../db/client';
 import { clips, jobs } from '../db/schema';
 import { authGuard } from '../middleware/auth-guard';
-import { JWTPayload } from '../types/auth';
+import type { JWTPayload } from '../types/auth';
 
 export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   .use(authGuard)
@@ -16,7 +16,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         .select()
         .from(jobs)
         .where(
-          and(eq(jobs.projectId, projectId), eq(jobs.userId, user?.userId)),
+          and(eq(jobs.projectId, projectId), eq(jobs.userId, user!.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -31,7 +31,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         resultClips = await db
           .select()
           .from(clips)
-          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user?.userId)));
+          .where(and(eq(clips.jobId, job.id), eq(clips.userId, user!.userId)));
       }
 
       return { ...job, clips: resultClips };
@@ -44,14 +44,14 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
   // Get job status via REST
   .get(
     '/:id',
-    async ({ params: { id }, user, set }) => {
+    async ({ params: { id }, user, set }: { params: { id: string }, user: any, set: any }) => {
       const job = await db
         .select()
         .from(jobs)
         .where(
-          user?.role === 'admin'
+          user!.role === 'admin'
             ? eq(jobs.id, id)
-            : and(eq(jobs.id, id), eq(jobs.userId, user?.userId)),
+            : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
         )
         .limit(1)
         .then((res) => res[0]);
@@ -65,7 +65,7 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         resultClips = await db
           .select()
           .from(clips)
-          .where(and(eq(clips.jobId, id), eq(clips.userId, user?.userId)));
+          .where(and(eq(clips.jobId, id), eq(clips.userId, user!.userId)));
       }
 
       return { ...job, clips: resultClips };
@@ -83,15 +83,15 @@ export const jobsRoutes = new Elysia({ prefix: '/jobs' })
         const updatedJob = await db
           .update(jobs)
           .set({
-            status: body.status as JobState,
+            status: body.status as any,
             progressPercent: body.progressPercent,
             failedReason: body.failedReason,
             updatedAt: new Date(),
           })
           .where(
-            user?.role === 'admin'
+            user!.role === 'admin'
               ? eq(jobs.id, id)
-              : and(eq(jobs.id, id), eq(jobs.userId, user?.userId)),
+              : and(eq(jobs.id, id), eq(jobs.userId, user!.userId)),
           )
           .returning()
           .then((res) => res[0]);

@@ -8,7 +8,8 @@
     "dev:client": "npm --workspace client run dev",
     "dev:server": "npm --workspace server run dev",
     "format": "biome format --write .",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "type-check:all": "(cd server && bun x tsc --noEmit) && (cd client && bun run build) && (cd workers && uv sync && uv run ruff check . && uv run pyright .)"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

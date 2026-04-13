@@ -22,7 +22,7 @@ export const authGuard = new Elysia({ name: 'authGuard' })
       let token = '';
 
       if (authorization?.startsWith('Bearer ')) {
-        token = authorization.split(' ')[1];
+        token = authorization!.split(' ')[1] || '';
       } else if (query?.token) {
         token = query.token as string;
       }
@@ -58,7 +58,10 @@ export const authGuard = new Elysia({ name: 'authGuard' })
         beforeHandle({
           user,
           set,
-        }: { user: JWTPayload | null; set: { status?: number | string } }) {
+        }: {
+          user?: JWTPayload | null;
+          set: { status?: number | string };
+        }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
@@ -73,7 +76,10 @@ export const authGuard = new Elysia({ name: 'authGuard' })
         async beforeHandle({
           user,
           set,
-        }: { user: JWTPayload | null; set: { status?: number | string } }) {
+        }: {
+          user?: JWTPayload | null;
+          set: { status?: number | string };
+        }) {
           if (!user) {
             set.status = 401;
             return { error: 'Unauthorized', code: 'UNAUTHORIZED' };
