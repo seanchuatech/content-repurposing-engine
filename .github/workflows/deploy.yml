@@ -212,13 +212,6 @@ jobs:
             --query 'taskDefinition.taskDefinitionArn' \
             --output text)
           echo "✅ New worker task definition registered: $TASK_DEF_ARN"
-          
-          # Update the SSM parameter so the API always launches the latest worker
-          aws ssm put-parameter \
-            --name "/content-engine-prod/worker_task_def_arn" \
-            --value "$TASK_DEF_ARN" \
-            --type "String" \
-            --overwrite
 
   # ── Deploy SPA to S3 + Invalidate CloudFront ──────────────────────────────────
   deploy-spa:

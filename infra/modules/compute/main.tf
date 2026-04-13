@@ -255,7 +255,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "AWS_REGION",       value = data.aws_region.current.name },
       { name = "S3_MEDIA_BUCKET",  value = var.media_bucket_name },
       { name = "ECS_CLUSTER_ARN",  value = aws_ecs_cluster.main.arn },
-      { name = "WORKER_TASK_DEF_ARN", value = aws_ecs_task_definition.worker.arn },
+      { name = "WORKER_TASK_FAMILY", value = aws_ecs_task_definition.worker.family },
       { name = "ECS_SUBNETS",      value = join(",", var.public_subnet_ids) },
       { name = "ECS_SECURITY_GROUPS", value = var.sg_worker_id },
     ]

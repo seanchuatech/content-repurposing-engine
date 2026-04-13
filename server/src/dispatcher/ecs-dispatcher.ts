@@ -32,7 +32,7 @@ export class ECSDispatcher implements JobDispatcher {
   ) {
     const command = new RunTaskCommand({
       cluster: process.env.ECS_CLUSTER_ARN,
-      taskDefinition: process.env.WORKER_TASK_DEF_ARN,
+      taskDefinition: process.env.WORKER_TASK_FAMILY,
       launchType: 'FARGATE',
       networkConfiguration: {
         awsvpcConfiguration: {
