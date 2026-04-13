@@ -13,6 +13,12 @@ if ! docker compose up -d postgres db-ui; then
     exit 1
 fi
 
+echo "⏳ Waiting for PostgreSQL to be healthy..."
+while [ "$(docker inspect --format='{{json .State.Health.Status}}' content-engine-db)" != "\"healthy\"" ]; do
+    sleep 1
+done
+echo "✅ PostgreSQL is healthy!"
+
 # 2. Install dependencies
 echo "📦 Installing TS dependencies..."
 bun install

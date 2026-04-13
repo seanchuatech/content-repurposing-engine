@@ -15,17 +15,24 @@ export const db = drizzle(client, { schema });
 
 /**
  * Automatically applies migrations from the 'migrations' folder to the database.
- * This is essential for zero-human-intervention deployments to private RDS.
+ * Includes a retry mechanism to handle startup race conditions.
  */
-export const migrateDB = async () => {
+export const migrateDB = async (retries = 5, delay = 2000) => {
   console.log('⏳ Running database migrations...');
-  try {
-    await migrate(db, { 
-      migrationsFolder: path.join(__dirname, 'migrations') 
-    });
-    console.log('✅ Database migrations completed successfully');
-  } catch (error) {
-    console.error('❌ Database migration failed:', error);
-    throw error;
+  for (let i = 0; i < retries; i++) {
+    try {
+      await migrate(db, { 
+        migrationsFolder: path.join(__dirname, 'migrations') 
+      });
+      console.log('✅ Database migrations completed successfully');
+      return;
+    } catch (error) {
+      if (i === retries - 1) {
+        console.error('❌ Database migration failed after max retries:', error);
+        throw error;
+      }
+      console.log(`⚠️ Migration failed, retrying in ${delay / 1000}s... (${i + 1}/${retries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 };
