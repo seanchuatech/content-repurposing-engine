@@ -14,6 +14,7 @@ import { projectsRoutes } from './routes/projects';
 import { settingsRoutes } from './routes/settings';
 import { uploadRoutes } from './routes/upload';
 import { webhookRoutes } from './routes/webhooks';
+import { migrateDB } from './db/client';
 
 const app = new Elysia()
   .use(cors())
@@ -61,8 +62,21 @@ app
       ),
   );
 
-app.listen(process.env.PORT || 3000);
+const start = async () => {
+  try {
+    // Run database migrations before starting the server
+    await migrateDB();
 
-console.log(
-  `🦊 Content Engine API is running at ${app.server?.hostname}:${app.server?.port}`,
-);
+    const port = process.env.PORT || 3000;
+    app.listen(port);
+
+    console.log(
+      `🦊 Content Engine API is running at ${app.server?.hostname}:${app.server?.port}`,
+    );
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+start();
