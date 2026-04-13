@@ -239,7 +239,7 @@ jobs:
       - name: Build SPA
         working-directory: client
         env:
-          VITE_API_URL: https://studio.leonardseanchua.dev
+          VITE_API_URL: /api
         run: bun run build
 
       - name: Configure AWS credentials via OIDC
