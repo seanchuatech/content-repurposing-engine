@@ -3,6 +3,7 @@ locals {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 # ─── ECR Repositories ─────────────────────────────────────────────────────────
 resource "aws_ecr_repository" "api" {
@@ -165,6 +166,35 @@ resource "aws_iam_role_policy" "github_deploy" {
         Action   = ["ssm:PutParameter"]
         Resource = "arn:aws:ssm:ap-southeast-1:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}-${var.environment}/worker_task_def_arn"
       },
+      # Terraform State Backend access (S3 + DynamoDB)
+      {
+        Effect   = "Allow"
+        Action   = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::content-engine-tfstate",
+          "arn:aws:s3:::content-engine-tfstate/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = "arn:aws:dynamodb:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:table/content-engine-tflock"
+      },
     ]
   })
+}
+
+# Attach ReadOnlyAccess so Terraform plan can read the state of all AWS resources
+resource "aws_iam_role_policy_attachment" "github_deploy_readonly" {
+  role       = aws_iam_role.github_deploy.name
+  policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }

@@ -60,10 +60,10 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    window.location.href = `${apiUrl}/auth/google`;
-  };
+  // const handleGoogleLogin = () => {
+  //   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  //   window.location.href = `${apiUrl}/auth/google`;
+  // };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 sm:px-6 lg:px-8">
