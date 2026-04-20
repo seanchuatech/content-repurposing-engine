@@ -1,143 +1,130 @@
 # Content Repurposing Engine
 
-A powerful video processing pipeline and AI-driven content tool designed to take
-long-form videos and repurpose them into highly engaging, short-form clips
-optimized for platforms like TikTok, YouTube Shorts, and Instagram Reels.
+Content Repurposing Engine converts long-form video into short-form clips optimized for TikTok, YouTube Shorts, and Instagram Reels.
 
-The goal of this project is to provide a seamless, reliable, and horizontally
-scalable system for media processing. Built with an architecture separating the
-frontend client, lightweight API server, and robust parallel workers—this
-handles uploading, transcribing, LLM-based clip extraction, auto-captioning, and
-formatting all at scale, locally or in the cloud.
+Upload a video (or paste a YouTube URL), and the engine automatically transcribes it, identifies the most engaging moments using LLMs, extracts clips, burns in captions, and reframes them to portrait 9:16 — all with real-time progress streaming.
 
-## Features
+> **Live:** [studio.leonardseanchua.dev](https://studio.leonardseanchua.dev)
 
-- **Upload & Management**: Upload large video files or use YouTube URLs
-  directly.
-- **Smart Transcription**: Automated transcription using local OpenAI Whisper or
-  cloud-based Groq API (free tier available).
-- **Viral Moment Analysis**: Extracts top-performing clips using LLMs to detect
-  engagement hooks and insight density.
-- **Auto Re-framing & Captioning**: Converts landscape 16:9 to portrait 9:16
-  format with auto-generated hardcoded subtitles.
-- **Event-Driven Architecture**: Ephemeral workers are spawned on-demand for processing, automatically reporting progress via SSE and cleanly exiting upon completion, ensuring efficient resource usage without long-running daemons.
+---
 
-## Tech Stack Overview
+## Architecture
 
-- **Client**: React 18, Vite, TypeScript, Tailwind CSS
-- **Server**: Bun, Elysia, PostgreSQL (Drizzle ORM)
-- **Workers**: Python 3.12+, Whisper, FFmpeg, LLM API, boto3
-- **Infrastructure**: Docker Compose (Local Database) / Terraform (AWS ECS & S3)
+The system is split into three independently deployable components:
 
-## Getting Started Locally
+```
+client/        React SPA — project dashboard, upload UI, clip viewer
+server/        Bun + Elysia API — auth, job dispatch, SSE progress streaming
+workers/       Python — transcription, LLM analysis, FFmpeg processing
+infra/         Terraform — AWS ECS Fargate, RDS, S3, CloudFront, ALB
+```
 
-> **💡 No AWS Emulator (like LocalStack) is required for local development!** 
-> The system automatically uses local file storage and native subprocess spawning when running locally, providing an identical developer experience without the cloud overhead.
+**How a job runs in production:**
+
+1. User uploads a video → API stores it in S3 and creates a job record in PostgreSQL
+2. API calls `ecs:RunTask` to spin up an **ephemeral Fargate container** for the worker
+3. Worker runs the full pipeline (transcribe → analyze → clip → caption → reframe), writing progress to the DB at each stage
+4. User sees live progress via **Server-Sent Events** (SSE) polling the job status
+5. Worker exits cleanly — container is destroyed, no idle compute
+
+Locally, step 2 spawns a Python subprocess instead, giving an identical developer experience with no cloud dependencies.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS |
+| **Backend** | Bun, Elysia, Drizzle ORM, PostgreSQL |
+| **Workers** | Python 3.12, uv, Groq (Whisper), Gemini / OpenAI, FFmpeg, boto3 |
+| **Auth** | Google OAuth 2.0 (Arctic), JWT |
+| **Billing** | Stripe Subscriptions + Webhooks |
+| **Infrastructure** | AWS ECS Fargate, RDS PostgreSQL, S3, CloudFront, ALB |
+| **IaC** | Terraform (modular — networking, compute, cdn, secrets, cicd) |
+| **CI/CD** | GitHub Actions — OIDC auth (zero static credentials), ECR push, rolling ECS deploy |
+
+---
+
+## Key Design Decisions
+
+**Event-driven, ephemeral workers** — Workers are ECS Fargate tasks launched on-demand via `ecs:RunTask`. They start, process one job, and exit. This eliminates always-on worker costs (~$18/mo saved) and Redis/BullMQ entirely.
+
+**Single-domain routing via CloudFront** — `/api/*` routes to the ALB, `/storage/*` routes to S3 media, and `/*` serves the React SPA. No CORS configuration needed.
+
+**No NAT Gateway** — ECS tasks run in public subnets with assigned public IPs, reaching ECR and CloudWatch directly via the Internet Gateway. This avoids a $32+/mo NAT Gateway.
+
+**Secrets at runtime** — All secrets live in AWS SSM Parameter Store and are injected into ECS containers at startup. GitHub Actions only stores the IAM Role ARN (non-sensitive).
+
+---
+
+## Local Development
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) (for PostgreSQL)
-- [Node.js](https://nodejs.org/) (for Frontend UI build) &
-  [Bun](https://bun.sh/) (for API backend)
-- [Python 3.12+](https://www.python.org/) &
-  [uv](https://github.com/astral-sh/uv) (for the processing workers)
-- [FFmpeg](https://ffmpeg.org/download.html) (must be accessible in your
-  `$PATH`)
+- [Docker](https://docs.docker.com/get-docker/) — for PostgreSQL
+- [Bun](https://bun.sh/) — API server runtime
+- [Python 3.12+](https://www.python.org/) + [uv](https://github.com/astral-sh/uv) — workers
+- [FFmpeg](https://ffmpeg.org/download.html) — in your `$PATH`
 
-### 1. Environment Configuration
-
-Clone the repository and set up the local variables:
+### Setup
 
 ```bash
+# 1. Clone and configure environment
 cp .env.example .env
-```
+# Fill in: GROQ_API_KEY, GEMINI_API_KEY, Google OAuth, Stripe keys
 
-Fill in `.env` with API keys and preferred configuration:
-
-- `STORAGE_BACKEND=local`
-- `TRANSCRIPTION_BACKEND=local` (or `groq` for cloud transcription)
-- Groq, OpenAI, Gemini, or Ollama keys for transcription and LLM analysis.
-
-### 2. The Fast Way: Native Runner (Recommended)
-
-You can boot up the entire stack concurrently using our native running script. This will start the database, run the backend, and start the frontend.
-
-Ensure you are at the project root and run:
-
-```bash
+# 2. Start the full stack
 ./dev.sh
 ```
 
-**Note on Workers:** You do not need to manually start a worker process. When a job is triggered (like a video upload), the Bun API server will automatically spawn an ephemeral Python worker in the background to handle the task, simulating the AWS ECS Fargate environment locally!
+`dev.sh` starts PostgreSQL (Docker), the Bun API server, and the Vite dev server concurrently. Workers are spawned automatically when a job is triggered — no separate process needed.
 
-### Or, The Manual Way (Step-by-Step)
-
-If you prefer running services in separate terminal tabs for easier isolated
-debugging:
-
-**Start PostgreSQL Database:**
+**Manual startup** (for isolated debugging):
 
 ```bash
-docker-compose up -d postgres db-ui
+docker compose up -d postgres    # Database
+cd server && bun run dev         # API  → http://localhost:3000
+cd client && npm run dev         # SPA  → http://localhost:5173
 ```
 
-**Run the Backend API Server:**
-
+**Stripe webhooks (optional):**
 ```bash
-cd server
-bun install
-bun run dev
+stripe listen --forward-to localhost:3000/webhooks/stripe
 ```
 
-**Run the Client Web Interface:**
+---
 
-```bash
-cd client
-npm install
-npm run dev
-```
+## Pipeline Stages
 
-**Testing Stripe Webhooks (Optional):**
+Each job runs through five sequential stages, with progress reported to the database after each:
 
-1. Install the [Stripe CLI](https://stripe.com/docs/stripe-cli).
-2. Login with `stripe login`.
-3. Forward events to your local server:
-   ```bash
-   stripe listen --forward-to localhost:3000/webhooks/stripe
-   ```
-4. Update `STRIPE_WEBHOOK_SECRET` in your `.env` with the signing secret (`whsec_...`) provided by the CLI output.
+| Stage | What happens |
+|-------|-------------|
+| **Transcribe** | Groq Whisper Large V3 cloud API converts audio to timestamped transcript |
+| **Analyze** | Gemini / OpenAI scores transcript segments for virality and engagement |
+| **Clip** | FFmpeg extracts the top-scoring segments from the source video |
+| **Caption** | Subtitles are hardcoded (burned in) to each clip |
+| **Reframe** | Clips are converted from 16:9 landscape to 9:16 portrait |
 
-Visit the frontend server (typically `http://localhost:5173`) in your browser to
-interact with the engine. Upload a video to monitor progress traversing from
-upload processing directly to final edited clips seamlessly!
+---
 
-# Video Processing Workers
+## Infrastructure (AWS)
 
-The worker service handles compute-heavy AI tasks: transcription, viral moment
-analysis, clipping, and captioning. In production, these run as isolated AWS ECS Fargate tasks. Locally, they are spawned as one-shot background processes via the API server.
+Managed with Terraform. Modules live under `infra/modules/`:
 
-## 🛠️ Prerequisites
+- `networking` — VPC, subnets, security groups, IGW
+- `database` — RDS PostgreSQL `db.t3.micro` (free tier)
+- `storage` — S3 buckets for SPA and media, CloudFront OAC
+- `compute` — ECS cluster, ALB, API service, worker task definition, IAM roles
+- `cdn` — CloudFront distribution, ACM certificates
+- `secrets` — SSM Parameter Store
+- `cicd` — GitHub OIDC provider, deploy IAM role, ECR repositories
 
-- **Python 3.12+**
-- **FFmpeg** (installed on host for local run)
-- **yt-dlp** (installed on host for local run)
-- **[uv](https://github.com/astral-sh/uv)** (recommended for dependency
-  management)
+**Estimated monthly cost:** ~$36/mo (ECS API ~$9, ALB ~$16, Public IPs ~$11; S3/CloudFront/RDS on free tier)
 
-## ⚙️ Configuration
+**CI/CD:**
 
-Key environment variables in `.env`:
-
-- `WHISPER_MODEL`: `whisper-large-v3`, `whisper-large-v3-turbo` (Groq).
-- `TRANSCRIPTION_BACKEND`: `groq` (cloud API).
-- `GROQ_API_KEY`: API key for Groq cloud transcription (get one free at
-  [console.groq.com](https://console.groq.com/keys)).
-- `LLM_MODEL`: The model name to use for analysis (default: `gpt-4o`).
-
-## 📁 Pipeline Stages
-
-1. **Transcribe**: Groq Cloud API (Whisper Large V3) or Local Whisper.
-2. **Analyze**: Gemini/OpenAI virality scoring.
-3. **Clip**: FFmpeg segment extraction.
-4. **Caption**: Hardcoded subtitle burn-in.
-5. **Reframe**: 9:16 portrait conversion.
+- `ci.yml` — runs on PRs: lint (Biome + Ruff), type check, tests
+- `deploy.yml` — runs on `main`: builds & pushes Docker images to ECR, updates ECS service, syncs SPA to S3, invalidates CloudFront
+- `drift-detection.yml` — runs daily: `terraform plan` to catch any manual changes in AWS
