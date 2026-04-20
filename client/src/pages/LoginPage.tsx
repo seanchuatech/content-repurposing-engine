@@ -187,7 +187,7 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6">
+          {/* <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-800" />
@@ -213,7 +213,7 @@ const LoginPage: React.FC = () => {
                 Google
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <p className="mt-4 text-center text-sm text-slate-400">
