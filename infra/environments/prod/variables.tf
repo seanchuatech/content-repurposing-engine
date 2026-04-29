@@ -87,6 +87,11 @@ variable "worker_image_tag" {
   default = "latest"
 }
 
+variable "alert_email" {
+  type        = string
+  description = "Email address for CloudWatch alerts"
+}
+
 variable "allowed_demo_emails" {
   description = "Comma-separated list of emails allowed to use the demo"
   type        = string

@@ -25,3 +25,11 @@ output "worker_task_role_arn" {
 output "execution_role_arn" {
   value = aws_iam_role.execution.arn
 }
+
+output "alb_arn_suffix" {
+  value = aws_lb.main.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  value = aws_lb_target_group.api.arn_suffix
+}

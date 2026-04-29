@@ -57,6 +57,7 @@ jobs:
             -var="gemini_api_key=drift-check-placeholder" \
             -var="google_client_id=drift-check-placeholder" \
             -var="google_client_secret=drift-check-placeholder" \
+            -var="alert_email=drift-check-placeholder" \
             -out=tfplan 2>&1 | tee plan_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
           if [ $EXIT_CODE -eq 2 ]; then

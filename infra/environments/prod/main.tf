@@ -110,3 +110,13 @@ module "compute" {
   ssm_prefix  = module.secrets.ssm_prefix
   full_domain = local.full_domain
 }
+
+module "monitoring" {
+  source       = "../../modules/monitoring"
+  project_name = var.project_name
+  environment  = var.environment
+
+  alert_email             = var.alert_email
+  alb_arn_suffix          = module.compute.alb_arn_suffix
+  target_group_arn_suffix = module.compute.target_group_arn_suffix
+}
